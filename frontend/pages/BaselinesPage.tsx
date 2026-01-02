@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import backend from "~backend/client";
 import { BaselineCard } from "../components/BaselineCard";
-import { UploadDialog } from "../components/UploadDialog";
-import { ComparisonDialog } from "../components/ComparisonDialog";
-import { ImagePreviewDialog } from "../components/ImagePreviewDialog";
-import { BaselineUploadModal } from "../components/BaselineUploadModal";
+import { BaselineUploadModal, BaselineInput } from "../components/BaselineUploadModal";
+import { ImportZipModal } from "../components/ImportZipModal";
 import { BaselinePreviewDrawer } from "../components/BaselinePreviewDrawer";
-import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, Layers } from "lucide-react";
+import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, GitBranch } from "lucide-react";
 import { Button } from "../components/ui/button";
-import type { BaselineMetadata } from "~backend/baselines/list";
+import type { BaselineMetadata } from "~backend/baselines/list_fs";
 
 export function BaselinesPage() {
   const [baselines, setBaselines] = useState<BaselineMetadata[]>([]);
@@ -16,33 +14,21 @@ export function BaselinesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "validated" | "invalid" | "missing">("all");
-  const [uploadDialog, setUploadDialog] = useState<{
-    screenId: string;
-    screenName: string;
-  } | null>(null);
-  const [comparisonDialog, setComparisonDialog] = useState<{
-    screenId: string;
-    screenName: string;
-    currentImageData?: string;
-    newImageData: string;
-    newFile: File;
-  } | null>(null);
-  const [previewDialog, setPreviewDialog] = useState<{
-    screenId: string;
-    screenName: string;
-    imageData: string;
-    hash: string;
-  } | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showImportZipModal, setShowImportZipModal] = useState(false);
   const [previewDrawer, setPreviewDrawer] = useState<{
     baseline: BaselineMetadata;
     imageData: string;
   } | null>(null);
+  const [gitStatus, setGitStatus] = useState<{ baselinesChanged: boolean; changedFiles: string[] }>({
+    baselinesChanged: false,
+    changedFiles: [],
+  });
 
   const fetchBaselines = async () => {
     setLoading(true);
     try {
-      const response = await backend.baselines.list();
+      const response = await backend.baselines.listFs();
       setBaselines(response.baselines);
       setFilteredBaselines(response.baselines);
     } catch (error) {
@@ -52,8 +38,21 @@ export function BaselinesPage() {
     }
   };
 
+  const fetchGitStatus = async () => {
+    try {
+      const response = await backend.baselines.gitStatus();
+      setGitStatus({
+        baselinesChanged: response.baselinesChanged,
+        changedFiles: response.changedFiles,
+      });
+    } catch (error) {
+      console.error("Failed to fetch git status:", error);
+    }
+  };
+
   useEffect(() => {
     fetchBaselines();
+    fetchGitStatus();
   }, []);
 
   useEffect(() => {
@@ -64,7 +63,7 @@ export function BaselinesPage() {
         (b) =>
           b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           b.screenId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          b.url.toLowerCase().includes(searchQuery.toLowerCase())
+          (b.url && b.url.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -80,51 +79,9 @@ export function BaselinesPage() {
     setFilteredBaselines(filtered);
   }, [searchQuery, filterStatus, baselines]);
 
-  const handleCompare = async (screenId: string, file: File, preview: string) => {
-    const baseline = baselines.find((b) => b.screenId === screenId);
-    if (!baseline) return;
-
-    let currentImageData: string | undefined;
-    if (baseline.hasImage) {
-      try {
-        const response = await backend.baselines.getImage({ screenId });
-        currentImageData = response.imageData;
-      } catch (error) {
-        console.error("Failed to load current image:", error);
-      }
-    }
-
-    setUploadDialog(null);
-    setComparisonDialog({
-      screenId,
-      screenName: baseline.name,
-      currentImageData,
-      newImageData: preview,
-      newFile: file,
-    });
-  };
-
-  const handleApprove = async (screenId: string, file: File) => {
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const arrayBuffer = e.target?.result as ArrayBuffer;
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const base64 = btoa(String.fromCharCode(...uint8Array));
-
-      try {
-        await backend.baselines.upload({ screenId, imageData: base64 });
-        await fetchBaselines();
-      } catch (error) {
-        console.error("Upload failed:", error);
-        throw error;
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
   const handleView = async (screenId: string) => {
     try {
-      const response = await backend.baselines.getImage({ screenId });
+      const response = await backend.baselines.getImageFs({ screenId });
       const baseline = baselines.find((b) => b.screenId === screenId);
       if (baseline) {
         setPreviewDrawer({
@@ -139,7 +96,7 @@ export function BaselinesPage() {
 
   const handleValidate = async (screenId: string) => {
     try {
-      const response = await backend.baselines.validateBaseline({ screenId });
+      const response = await backend.baselines.validateBaselineFs({ screenId });
       alert(response.message);
       await fetchBaselines();
     } catch (error) {
@@ -149,14 +106,15 @@ export function BaselinesPage() {
 
   const handleDelete = async (screenId: string) => {
     try {
-      await backend.baselines.deleteBaseline({ screenId });
+      await backend.baselines.deleteBaselineFs({ screenId });
       await fetchBaselines();
+      await fetchGitStatus();
     } catch (error) {
       console.error("Delete failed:", error);
     }
   };
 
-  const handleUploadBaselines = async (baselineInputs: any[]) => {
+  const handleUploadBaselines = async (baselineInputs: BaselineInput[]) => {
     const baselinesData = await Promise.all(
       baselineInputs.map(async (input) => {
         const reader = new FileReader();
@@ -181,8 +139,75 @@ export function BaselinesPage() {
       })
     );
 
-    await backend.baselines.uploadMulti({ baselines: baselinesData });
-    await fetchBaselines();
+    try {
+      await backend.baselines.uploadMultiFs({ baselines: baselinesData });
+      await fetchBaselines();
+      await fetchGitStatus();
+    } catch (error) {
+      console.error("Upload failed:", error);
+      throw error;
+    }
+  };
+
+  const handleImportZip = async (zipFile: File, overwriteExisting: boolean, importPolicy: boolean) => {
+    const arrayBuffer = await zipFile.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const base64 = btoa(String.fromCharCode(...uint8Array));
+
+    try {
+      const response = await backend.baselines.importZipFs({
+        zipData: base64,
+        overwriteExisting,
+        importPolicy,
+      });
+
+      if (response.errors.length > 0) {
+        alert(
+          `Import completed with errors:\n${response.errors.map((e) => `${e.screenId || "Unknown"}: ${e.message}`).join("\n")}`
+        );
+      } else {
+        alert(`Successfully imported ${response.imported.length} baseline(s)`);
+      }
+
+      await fetchBaselines();
+      await fetchGitStatus();
+    } catch (error) {
+      console.error("Import failed:", error);
+      throw error;
+    }
+  };
+
+  const handleUpdateMetadata = async (
+    screenId: string,
+    updates: {
+      masks?: Array<{ type: string; selector?: string; x?: number; y?: number; width?: number; height?: number }>;
+      tags?: string[];
+      viewportWidth?: number;
+      viewportHeight?: number;
+      route?: string;
+    }
+  ) => {
+    try {
+      await backend.baselines.updateMetadataFs({
+        screenId,
+        ...updates,
+      });
+      await fetchBaselines();
+      await fetchGitStatus();
+
+      if (previewDrawer && previewDrawer.baseline.screenId === screenId) {
+        const updatedBaseline = baselines.find((b) => b.screenId === screenId);
+        if (updatedBaseline) {
+          setPreviewDrawer({
+            ...previewDrawer,
+            baseline: { ...updatedBaseline, ...updates },
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Failed to update metadata:", error);
+      throw error;
+    }
   };
 
   const stats = {
@@ -194,6 +219,18 @@ export function BaselinesPage() {
 
   return (
     <div className="p-8">
+      {gitStatus.baselinesChanged && (
+        <div className="mb-6 bg-yellow-500/10 border border-yellow-500 rounded-lg p-4 flex items-start gap-3">
+          <GitBranch className="size-5 text-yellow-500 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-foreground">Baselines changed</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Commit your changes to preserve versioning. {gitStatus.changedFiles.length} file(s) modified.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground mb-2">Baseline Management</h1>
@@ -204,15 +241,11 @@ export function BaselinesPage() {
         <div className="flex gap-2">
           <Button onClick={() => setShowUploadModal(true)}>
             <Upload className="size-4" />
-            Upload Baselines
+            Upload Images
           </Button>
-          <Button variant="outline" onClick={() => setShowUploadModal(true)}>
+          <Button variant="outline" onClick={() => setShowImportZipModal(true)}>
             <FileArchive className="size-4" />
             Import ZIP
-          </Button>
-          <Button variant="outline" disabled title="Coming soon">
-            <Layers className="size-4" />
-            Generate from Routes
           </Button>
         </div>
       </div>
@@ -293,7 +326,7 @@ export function BaselinesPage() {
               Missing
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchBaselines}>
+          <Button variant="outline" size="sm" onClick={() => { fetchBaselines(); fetchGitStatus(); }}>
             <RefreshCw />
             Refresh
           </Button>
@@ -310,24 +343,25 @@ export function BaselinesPage() {
           <Upload className="size-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-xl font-semibold text-foreground mb-2">No baselines yet</h3>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Upload baseline images exported from Figma/Stitch, or import a ZIP containing your baselines.
+            Upload baseline images or import a ZIP containing your baselines to get started.
           </p>
           <div className="flex gap-3 justify-center mb-4">
             <Button onClick={() => setShowUploadModal(true)}>
               <Upload className="size-4" />
-              Upload Baselines
+              Upload Images
             </Button>
-            <Button variant="outline" onClick={() => setShowUploadModal(true)}>
+            <Button variant="outline" onClick={() => setShowImportZipModal(true)}>
               <FileArchive className="size-4" />
               Import ZIP
             </Button>
           </div>
           <div className="text-sm text-muted-foreground max-w-lg mx-auto mt-6 border-t pt-6">
-            <p className="font-semibold mb-2">Supported formats:</p>
+            <p className="font-semibold mb-2">Supported workflows:</p>
             <ul className="text-left space-y-1">
-              <li>• PNG, JPG, JPEG, WEBP images (max 5MB each)</li>
-              <li>• ZIP archives with baselines/manifest.json structure</li>
-              <li>• Screen IDs inferred from filenames</li>
+              <li>• Upload Images: PNG, JPG, JPEG, WEBP (max 5MB each)</li>
+              <li>• Import ZIP: baselines/manifest.json structure</li>
+              <li>• Infer screen IDs from filenames</li>
+              <li>• Configure tags, viewport, masks per screen</li>
             </ul>
           </div>
         </div>
@@ -337,12 +371,7 @@ export function BaselinesPage() {
             <BaselineCard
               key={baseline.screenId}
               baseline={baseline}
-              onUpload={(screenId) => {
-                const b = baselines.find((b) => b.screenId === screenId);
-                if (b) {
-                  setUploadDialog({ screenId, screenName: b.name });
-                }
-              }}
+              onUpload={() => {}}
               onView={handleView}
               onValidate={handleValidate}
             />
@@ -356,42 +385,19 @@ export function BaselinesPage() {
         </div>
       )}
 
-      {uploadDialog && (
-        <UploadDialog
-          screenId={uploadDialog.screenId}
-          screenName={uploadDialog.screenName}
-          onClose={() => setUploadDialog(null)}
-          onCompare={handleCompare}
-        />
-      )}
-
-      {comparisonDialog && (
-        <ComparisonDialog
-          screenId={comparisonDialog.screenId}
-          screenName={comparisonDialog.screenName}
-          currentImageData={comparisonDialog.currentImageData}
-          newImageData={comparisonDialog.newImageData}
-          newFile={comparisonDialog.newFile}
-          onApprove={handleApprove}
-          onReject={() => setComparisonDialog(null)}
-        />
-      )}
-
-      {previewDialog && (
-        <ImagePreviewDialog
-          screenId={previewDialog.screenId}
-          screenName={previewDialog.screenName}
-          imageData={previewDialog.imageData}
-          hash={previewDialog.hash}
-          onClose={() => setPreviewDialog(null)}
-        />
-      )}
-
       {showUploadModal && (
         <BaselineUploadModal
           open={showUploadModal}
           onClose={() => setShowUploadModal(false)}
           onUpload={handleUploadBaselines}
+        />
+      )}
+
+      {showImportZipModal && (
+        <ImportZipModal
+          open={showImportZipModal}
+          onClose={() => setShowImportZipModal(false)}
+          onImport={handleImportZip}
         />
       )}
 
@@ -402,6 +408,7 @@ export function BaselinesPage() {
           onClose={() => setPreviewDrawer(null)}
           onDelete={handleDelete}
           onRevalidate={handleValidate}
+          onUpdateMetadata={handleUpdateMetadata}
         />
       )}
     </div>

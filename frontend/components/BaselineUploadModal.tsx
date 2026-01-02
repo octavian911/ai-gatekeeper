@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
+import { Dialog } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Badge } from "./ui/badge";
-import { Upload, FileArchive, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, X, AlertCircle, Loader2 } from "lucide-react";
 
-interface BaselineInput {
+export interface BaselineInput {
   id: string;
   file: File;
   preview: string;
@@ -28,12 +26,10 @@ interface BaselineUploadModalProps {
 }
 
 export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadModalProps) {
-  const [activeTab, setActiveTab] = useState("images");
   const [baselines, setBaselines] = useState<BaselineInput[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
-  const [zipFile, setZipFile] = useState<File | null>(null);
-  const [metadataFile, setMetadataFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
 
   const handleFilesSelected = async (files: FileList | null) => {
     if (!files) return;
@@ -42,8 +38,8 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
-      if (!file.type.startsWith("image/")) {
+
+      if (!file.type.match(/^image\/(png|jpe?g|webp)$/)) {
         continue;
       }
 
@@ -53,7 +49,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
 
       const preview = URL.createObjectURL(file);
       const img = new Image();
-      
+
       await new Promise((resolve) => {
         img.onload = resolve;
         img.src = preview;
@@ -66,7 +62,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
         file,
         preview,
         screenId,
-        name: screenId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+        name: screenId.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
         route: `/${screenId}`,
         tags: [],
         viewportWidth: 1280,
@@ -79,31 +75,43 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
     setBaselines([...baselines, ...newBaselines]);
   };
 
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
     handleFilesSelected(e.dataTransfer.files);
   };
 
   const removeBaseline = (id: string) => {
-    const baseline = baselines.find(b => b.id === id);
+    const baseline = baselines.find((b) => b.id === id);
     if (baseline) {
       URL.revokeObjectURL(baseline.preview);
     }
-    setBaselines(baselines.filter(b => b.id !== id));
+    setBaselines(baselines.filter((b) => b.id !== id));
     selectedIds.delete(id);
     setSelectedIds(new Set(selectedIds));
   };
 
   const updateBaseline = (id: string, updates: Partial<BaselineInput>) => {
-    setBaselines(baselines.map(b => b.id === id ? { ...b, ...updates } : b));
+    setBaselines(baselines.map((b) => (b.id === id ? { ...b, ...updates } : b)));
   };
 
   const toggleTag = (id: string, tag: string) => {
-    const baseline = baselines.find(b => b.id === id);
+    const baseline = baselines.find((b) => b.id === id);
     if (!baseline) return;
 
     const tags = baseline.tags.includes(tag)
-      ? baseline.tags.filter(t => t !== tag)
+      ? baseline.tags.filter((t) => t !== tag)
       : [...baseline.tags, tag];
 
     updateBaseline(id, { tags });
@@ -111,24 +119,22 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
 
   const validateBaselines = () => {
     const screenIds = new Map<string, number>();
-    const updated = baselines.map(b => {
+    const updated = baselines.map((b) => {
       const count = screenIds.get(b.screenId) || 0;
       screenIds.set(b.screenId, count + 1);
 
       let error: string | undefined;
       if (count > 0) {
         error = "Duplicate screen ID";
-      } else if (b.tags.includes("noisy")) {
-        error = "Noisy tag requires masks (not yet supported in upload UI)";
-      } else if (b.width !== b.viewportWidth || b.height !== b.viewportHeight) {
-        error = `Image dimensions (${b.width}x${b.height}) don't match viewport (${b.viewportWidth}x${b.viewportHeight})`;
+      } else if (Math.abs(b.width - b.viewportWidth) > 10 || Math.abs(b.height - b.viewportHeight) > 10) {
+        error = `Image dimensions (${b.width}×${b.height}) mismatch viewport (${b.viewportWidth}×${b.viewportHeight})`;
       }
 
       return { ...b, error };
     });
 
     setBaselines(updated);
-    return updated.filter(b => !b.error);
+    return updated.filter((b) => !b.error);
   };
 
   const handleUpload = async () => {
@@ -138,7 +144,9 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
     setUploading(true);
     try {
       await onUpload(valid);
+      baselines.forEach((b) => URL.revokeObjectURL(b.preview));
       setBaselines([]);
+      setSelectedIds(new Set());
       onClose();
     } catch (error) {
       console.error("Upload failed:", error);
@@ -147,325 +155,252 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
     }
   };
 
-  const handleZipUpload = async () => {
-    if (!zipFile) return;
-
-    setUploading(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const base64 = btoa(String.fromCharCode(...uint8Array));
-        
-        await fetch("/api/baselines/import-zip", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ zipData: base64 }),
-        });
-
-        setZipFile(null);
-        onClose();
-      };
-      reader.readAsArrayBuffer(zipFile);
-    } catch (error) {
-      console.error("ZIP import failed:", error);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const applyViewportToAll = () => {
     if (baselines.length === 0) return;
     const { viewportWidth, viewportHeight } = baselines[0];
-    setBaselines(baselines.map(b => ({ ...b, viewportWidth, viewportHeight })));
+    setBaselines(baselines.map((b) => ({ ...b, viewportWidth, viewportHeight })));
   };
 
   const applyTagToSelected = (tag: string) => {
-    setBaselines(baselines.map(b => 
-      selectedIds.has(b.id) && !b.tags.includes(tag)
-        ? { ...b, tags: [...b.tags, tag] }
-        : b
-    ));
+    setBaselines(
+      baselines.map((b) =>
+        selectedIds.has(b.id) && !b.tags.includes(tag) ? { ...b, tags: [...b.tags, tag] } : b
+      )
+    );
+  };
+
+  const handleClose = () => {
+    if (!uploading) {
+      baselines.forEach((b) => URL.revokeObjectURL(b.preview));
+      setBaselines([]);
+      setSelectedIds(new Set());
+      onClose();
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Upload Baselines</DialogTitle>
-          <DialogDescription>
-            Upload baseline images from Figma/Stitch, import a ZIP, or provide metadata.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Tabs defaultValue="images" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="images">Images</TabsTrigger>
-            <TabsTrigger value="zip">ZIP Import</TabsTrigger>
-            <TabsTrigger value="metadata">Metadata</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="images">
-            <div
-              className="border-2 border-dashed border-border rounded-lg p-8 text-center mb-4"
-              onDrop={handleDrop}
-              onDragOver={(e) => e.preventDefault()}
-            >
-              <Upload className="size-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-foreground mb-2">Drag & drop images here</p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Supports: PNG, JPG, JPEG, WEBP (max 5MB each)
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.multiple = true;
-                  input.accept = ".png,.jpg,.jpeg,.webp";
-                  input.onchange = (e) => handleFilesSelected((e.target as HTMLInputElement).files);
-                  input.click();
-                }}
-              >
-                Select Files
-              </Button>
+    <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-card border rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Upload className="size-6 text-primary" />
+              <h2 className="text-2xl font-bold text-foreground">Upload Images</h2>
             </div>
+            <Button variant="ghost" size="sm" onClick={handleClose} disabled={uploading}>
+              ✕
+            </Button>
+          </div>
 
-            {baselines.length > 0 && (
-              <>
-                <div className="flex gap-2 mb-4">
-                  <Button size="sm" variant="outline" onClick={applyViewportToAll}>
-                    Apply viewport to all
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => applyTagToSelected("standard")}
-                    disabled={selectedIds.size === 0}
-                  >
-                    Tag selected as "standard"
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => applyTagToSelected("critical")}
-                    disabled={selectedIds.size === 0}
-                  >
-                    Tag selected as "critical"
-                  </Button>
-                </div>
+          <div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed rounded-lg p-8 text-center mb-6 transition-colors ${
+              dragActive ? "border-primary bg-primary/10" : "border-border"
+            }`}
+          >
+            <Upload className="size-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-foreground mb-2">Drag & drop images here</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Supports: PNG, JPG, JPEG, WEBP (max 5MB each)
+            </p>
+            <input
+              type="file"
+              multiple
+              accept=".png,.jpg,.jpeg,.webp"
+              onChange={(e) => handleFilesSelected(e.target.files)}
+              className="hidden"
+              id="file-upload"
+            />
+            <label htmlFor="file-upload">
+              <Button asChild variant="outline">
+                <span>Select Files</span>
+              </Button>
+            </label>
+          </div>
 
-                <div className="max-h-96 overflow-y-auto space-y-3">
-                  {baselines.map((baseline) => (
-                    <div 
-                      key={baseline.id} 
-                      className={`border rounded-lg p-3 ${baseline.error ? "border-red-500" : "border-border"}`}
-                    >
-                      <div className="flex gap-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(baseline.id)}
-                          onChange={(e) => {
-                            const newSet = new Set(selectedIds);
-                            if (e.target.checked) {
-                              newSet.add(baseline.id);
-                            } else {
-                              newSet.delete(baseline.id);
+          {baselines.length > 0 && (
+            <>
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <Button size="sm" variant="outline" onClick={applyViewportToAll}>
+                  Apply viewport to all
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyTagToSelected("standard")}
+                  disabled={selectedIds.size === 0}
+                >
+                  Tag selected: standard
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyTagToSelected("critical")}
+                  disabled={selectedIds.size === 0}
+                >
+                  Tag selected: critical
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyTagToSelected("noisy")}
+                  disabled={selectedIds.size === 0}
+                >
+                  Tag selected: noisy
+                </Button>
+                <Button size="sm" variant="outline" onClick={validateBaselines}>
+                  Validate All
+                </Button>
+              </div>
+
+              <div className="max-h-[400px] overflow-y-auto space-y-3 mb-6">
+                {baselines.map((baseline) => (
+                  <div
+                    key={baseline.id}
+                    className={`border rounded-lg p-3 ${
+                      baseline.error ? "border-red-500 bg-red-500/5" : "border-border"
+                    }`}
+                  >
+                    <div className="flex gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(baseline.id)}
+                        onChange={(e) => {
+                          const newSet = new Set(selectedIds);
+                          if (e.target.checked) {
+                            newSet.add(baseline.id);
+                          } else {
+                            newSet.delete(baseline.id);
+                          }
+                          setSelectedIds(newSet);
+                        }}
+                        className="self-start mt-2"
+                      />
+                      <img
+                        src={baseline.preview}
+                        alt={baseline.screenId}
+                        className="size-20 object-cover rounded border"
+                      />
+                      <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-xs text-muted-foreground font-medium">
+                            Screen ID *
+                          </label>
+                          <Input
+                            value={baseline.screenId}
+                            onChange={(e) =>
+                              updateBaseline(baseline.id, { screenId: e.target.value })
                             }
-                            setSelectedIds(newSet);
-                          }}
-                        />
-                        <img src={baseline.preview} alt={baseline.screenId} className="size-16 object-cover rounded" />
-                        <div className="flex-1 grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-xs text-muted-foreground">Screen ID</label>
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground font-medium">Name</label>
+                          <Input
+                            value={baseline.name}
+                            onChange={(e) => updateBaseline(baseline.id, { name: e.target.value })}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground font-medium">Route</label>
+                          <Input
+                            value={baseline.route}
+                            onChange={(e) => updateBaseline(baseline.id, { route: e.target.value })}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground font-medium">
+                            Viewport
+                          </label>
+                          <div className="flex gap-1 mt-1">
                             <Input
-                              value={baseline.screenId}
-                              onChange={(e) => updateBaseline(baseline.id, { screenId: e.target.value })}
+                              type="number"
+                              value={baseline.viewportWidth}
+                              onChange={(e) =>
+                                updateBaseline(baseline.id, {
+                                  viewportWidth: parseInt(e.target.value),
+                                })
+                              }
+                              className="w-24"
                             />
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">Name</label>
+                            <span className="text-muted-foreground self-center">×</span>
                             <Input
-                              value={baseline.name}
-                              onChange={(e) => updateBaseline(baseline.id, { name: e.target.value })}
+                              type="number"
+                              value={baseline.viewportHeight}
+                              onChange={(e) =>
+                                updateBaseline(baseline.id, {
+                                  viewportHeight: parseInt(e.target.value),
+                                })
+                              }
+                              className="w-24"
                             />
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">Route</label>
-                            <Input
-                              value={baseline.route}
-                              onChange={(e) => updateBaseline(baseline.id, { route: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">Viewport</label>
-                            <div className="flex gap-1">
-                              <Input
-                                type="number"
-                                value={baseline.viewportWidth}
-                                onChange={(e) => updateBaseline(baseline.id, { viewportWidth: parseInt(e.target.value) })}
-                                className="w-20"
-                              />
-                              <span className="text-muted-foreground self-center">×</span>
-                              <Input
-                                type="number"
-                                value={baseline.viewportHeight}
-                                onChange={(e) => updateBaseline(baseline.id, { viewportHeight: parseInt(e.target.value) })}
-                                className="w-20"
-                              />
-                            </div>
-                          </div>
-                          <div className="col-span-2">
-                            <label className="text-xs text-muted-foreground">Tags</label>
-                            <div className="flex gap-2 mt-1">
-                              {["standard", "critical", "noisy"].map(tag => (
-                                <span
-                                  key={tag}
-                                  className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-md cursor-pointer ${
-                                    baseline.tags.includes(tag) 
-                                      ? "bg-primary text-primary-foreground" 
-                                      : "border border-border text-foreground"
-                                  }`}
-                                  onClick={() => toggleTag(baseline.id, tag)}
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => removeBaseline(baseline.id)}
-                        >
-                          <X className="size-4" />
-                        </Button>
+                        <div className="col-span-2">
+                          <label className="text-xs text-muted-foreground font-medium">Tags</label>
+                          <div className="flex gap-2 mt-1">
+                            {["standard", "critical", "noisy"].map((tag) => (
+                              <span
+                                key={tag}
+                                className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-md cursor-pointer ${
+                                  baseline.tags.includes(tag)
+                                    ? "bg-primary text-primary-foreground"
+                                    : "border border-border text-foreground hover:bg-accent"
+                                }`}
+                                onClick={() => toggleTag(baseline.id, tag)}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       </div>
+                      <Button size="sm" variant="ghost" onClick={() => removeBaseline(baseline.id)}>
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground ml-24">
+                      <span>
+                        Detected: {baseline.width}×{baseline.height}px
+                      </span>
                       {baseline.error && (
-                        <div className="flex items-center gap-2 mt-2 text-sm text-red-500">
-                          <AlertCircle className="size-4" />
+                        <div className="flex items-center gap-1 text-red-500 font-medium">
+                          <AlertCircle className="size-3" />
                           {baseline.error}
                         </div>
                       )}
-                      <div className="text-xs text-muted-foreground mt-2">
-                        Detected: {baseline.width}×{baseline.height}px
-                      </div>
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpload} disabled={baselines.length === 0 || uploading}>
-                {uploading ? "Uploading..." : `Upload ${baselines.length} baseline${baselines.length !== 1 ? "s" : ""}`}
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="zip">
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center mb-4">
-              <FileArchive className="size-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-foreground mb-2">Upload a ZIP file</p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Expected structure: baselines/manifest.json, baselines/&lt;screenId&gt;/baseline.png
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.accept = ".zip";
-                  input.onchange = (e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0];
-                    if (file) setZipFile(file);
-                  };
-                  input.click();
-                }}
-              >
-                Select ZIP
-              </Button>
-            </div>
-
-            {zipFile && (
-              <div className="border rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileArchive className="size-5 text-muted-foreground" />
-                    <span className="text-foreground">{zipFile.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      ({(zipFile.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setZipFile(null)}>
-                    <X className="size-4" />
-                  </Button>
-                </div>
+                ))}
               </div>
-            )}
+            </>
+          )}
 
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button onClick={handleZipUpload} disabled={!zipFile || uploading}>
-                {uploading ? "Importing..." : "Import ZIP"}
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="metadata">
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center mb-4">
-              <Upload className="size-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-foreground mb-2">Upload screens.json (optional)</p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Metadata will be merged with inferred data from uploaded images
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const input = document.createElement("input");
-                  input.type = "file";
-                  input.accept = ".json";
-                  input.onchange = (e) => {
-                    const file = (e.target as HTMLInputElement).files?.[0];
-                    if (file) setMetadataFile(file);
-                  };
-                  input.click();
-                }}
-              >
-                Select screens.json
-              </Button>
-            </div>
-
-            {metadataFile && (
-              <div className="border rounded-lg p-4 mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="size-5 text-green-500" />
-                    <span className="text-foreground">{metadataFile.name}</span>
-                  </div>
-                  <Button size="sm" variant="outline" onClick={() => setMetadataFile(null)}>
-                    <X className="size-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="outline" onClick={onClose}>
-                Close
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
+          <div className="flex gap-3 justify-end border-t pt-4">
+            <Button variant="outline" onClick={handleClose} disabled={uploading}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpload} disabled={baselines.length === 0 || uploading}>
+              {uploading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="size-4" />
+                  Upload {baselines.length} baseline{baselines.length !== 1 ? "s" : ""}
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
     </Dialog>
   );
 }
