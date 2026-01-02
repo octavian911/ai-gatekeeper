@@ -258,6 +258,13 @@ export const runCommand = new Command('run')
         }).trim();
       } catch {}
 
+      const resultsWithRelativePaths = results.map((r) => ({
+        ...r,
+        expectedPath: r.expectedPath ? path.relative(outDir, r.expectedPath) : undefined,
+        actualPath: r.actualPath ? path.relative(outDir, r.actualPath) : undefined,
+        diffPath: r.diffPath ? path.relative(outDir, r.diffPath) : undefined,
+      }));
+
       const summary: RunSummary = {
         runId,
         timestamp: new Date().toISOString(),
@@ -267,7 +274,7 @@ export const runCommand = new Command('run')
         passed: results.filter((r) => r.status === 'PASS').length,
         warned: results.filter((r) => r.status === 'WARN').length,
         failed: results.filter((r) => r.status === 'FAIL').length,
-        results,
+        results: resultsWithRelativePaths,
       };
 
       await fs.writeFile(
@@ -303,6 +310,13 @@ async function generateHTMLReport(
   summary: RunSummary,
   outDir: string
 ): Promise<void> {
+  const evidenceZipPath = path.join(outDir, 'evidence.zip');
+  let hasEvidenceZip = false;
+  try {
+    await fs.access(evidenceZipPath);
+    hasEvidenceZip = true;
+  } catch {}
+
   const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -327,13 +341,18 @@ async function generateHTMLReport(
       border: 1px solid #2a2a3e;
     }
     h1 { color: #fff; margin-bottom: 0.5rem; }
+    .header-badges {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
     .badge {
       display: inline-block;
       padding: 0.5rem 1rem;
       border-radius: 6px;
       font-weight: 600;
-      margin-top: 1rem;
-      margin-right: 0.5rem;
     }
     .badge.pass { background: #059669; color: white; }
     .badge.warn { background: #f59e0b; color: white; }
@@ -343,6 +362,18 @@ async function generateHTMLReport(
       color: #9ca3af;
       font-size: 0.875rem;
     }
+    .download-link {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: #3b82f6;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .download-link:hover { background: #2563eb; }
     .metrics {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -357,35 +388,78 @@ async function generateHTMLReport(
     }
     .metric-value { font-size: 2rem; font-weight: 700; color: #60a5fa; }
     .metric-label { color: #9ca3af; margin-top: 0.5rem; }
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      border: 2px solid #2a2a3e;
+      background: #1a1a2e;
+      color: #9ca3af;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover { border-color: #60a5fa; }
+    .filter-btn.active { border-color: #60a5fa; color: #60a5fa; background: #1e3a5f; }
     .results { margin-top: 2rem; }
     .result-item {
       background: #1a1a2e;
-      padding: 1.5rem;
       margin-bottom: 1rem;
       border-radius: 8px;
       border-left: 4px solid #2a2a3e;
+      overflow: hidden;
     }
     .result-item.pass { border-left-color: #059669; }
     .result-item.warn { border-left-color: #f59e0b; }
     .result-item.fail { border-left-color: #dc2626; }
+    .result-item.hidden { display: none; }
     .result-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1rem;
+      padding: 1.5rem;
+      cursor: pointer;
+      user-select: none;
     }
+    .result-header:hover { background: #1e1e30; }
+    .header-left { display: flex; align-items: center; gap: 1rem; }
+    .expand-icon {
+      color: #60a5fa;
+      font-size: 1.2rem;
+      transition: transform 0.2s;
+    }
+    .result-item.expanded .expand-icon { transform: rotate(90deg); }
     .screen-name { font-size: 1.1rem; font-weight: 600; }
+    .screen-url { color: #9ca3af; font-size: 0.875rem; margin-top: 0.25rem; }
     .stats {
       font-family: 'Courier New', monospace;
       color: #9ca3af;
       font-size: 0.875rem;
     }
+    .result-details {
+      padding: 0 1.5rem 1.5rem 1.5rem;
+      display: none;
+    }
+    .result-item.expanded .result-details { display: block; }
+    .detail-stats {
+      background: #0a0a0a;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+    .detail-stats div { margin-bottom: 0.5rem; }
+    .detail-stats div:last-child { margin-bottom: 0; }
     .error {
       background: #450a0a;
       color: #fca5a5;
       padding: 1rem;
       border-radius: 6px;
-      margin-top: 1rem;
+      margin-bottom: 1rem;
       font-family: monospace;
       font-size: 0.875rem;
     }
@@ -393,7 +467,6 @@ async function generateHTMLReport(
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 1rem;
-      margin-top: 1rem;
     }
     .image-box {
       background: #0a0a0a;
@@ -407,6 +480,12 @@ async function generateHTMLReport(
       font-size: 0.875rem;
       text-transform: uppercase;
     }
+    .image-link {
+      display: block;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .image-link:hover { opacity: 0.8; }
     img {
       width: 100%;
       border-radius: 4px;
@@ -418,7 +497,7 @@ async function generateHTMLReport(
   <div class="container">
     <div class="header">
       <h1>🛡️ AI Output Gate Run Report</h1>
-      <div>
+      <div class="header-badges">
         <span class="badge pass">PASS: ${summary.passed}</span>
         <span class="badge warn">WARN: ${summary.warned}</span>
         <span class="badge fail">FAIL: ${summary.failed}</span>
@@ -429,6 +508,7 @@ async function generateHTMLReport(
         ${summary.sha ? `<div>SHA: ${summary.sha.substring(0, 8)}</div>` : ''}
         ${summary.branch ? `<div>Branch: ${summary.branch}</div>` : ''}
       </div>
+      ${hasEvidenceZip ? '<a href="evidence.zip" class="download-link" download>📦 Download evidence.zip</a>' : ''}
     </div>
 
     <div class="metrics">
@@ -452,9 +532,43 @@ async function generateHTMLReport(
 
     <div class="results">
       <h2 style="margin-bottom: 1rem;">Screen Results</h2>
-      ${summary.results.map((r) => generateResultItem(r, outDir)).join('\n')}
+      <div class="filters">
+        <button class="filter-btn active" data-filter="all">All (${summary.total})</button>
+        <button class="filter-btn" data-filter="PASS">Pass (${summary.passed})</button>
+        <button class="filter-btn" data-filter="WARN">Warn (${summary.warned})</button>
+        <button class="filter-btn" data-filter="FAIL">Fail (${summary.failed})</button>
+      </div>
+      <div id="results-container">
+        ${summary.results.map((r) => generateResultItem(r)).join('\n')}
+      </div>
     </div>
   </div>
+  <script>
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const resultItems = document.querySelectorAll('.result-item');
+    
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const filter = btn.dataset.filter;
+        resultItems.forEach(item => {
+          if (filter === 'all' || item.dataset.status === filter) {
+            item.classList.remove('hidden');
+          } else {
+            item.classList.add('hidden');
+          }
+        });
+      });
+    });
+    
+    document.querySelectorAll('.result-header').forEach(header => {
+      header.addEventListener('click', () => {
+        header.closest('.result-item').classList.toggle('expanded');
+      });
+    });
+  </script>
 </body>
 </html>
   `;
@@ -462,51 +576,46 @@ async function generateHTMLReport(
   await fs.writeFile(path.join(outDir, 'report.html'), html);
 }
 
-function generateResultItem(result: ScreenResult, outDir: string): string {
+function generateResultItem(result: ScreenResult): string {
   const statusClass = result.status.toLowerCase();
 
-  let stats = '';
+  let detailStats = '';
   if (!result.error) {
-    stats = `
-      <div class="stats">
-        Diff: ${result.diffPixels} pixels (${(result.diffPixelRatio * 100).toFixed(4)}%) | 
-        Match: ${result.originalityPercent.toFixed(2)}%
-      </div>
-      <div class="stats">
-        Thresholds: WARN ${(result.thresholds.warn.diffPixelRatio * 100).toFixed(4)}% / ${result.thresholds.warn.diffPixels}px | 
-        FAIL ${(result.thresholds.fail.diffPixelRatio * 100).toFixed(4)}% / ${result.thresholds.fail.diffPixels}px
-        ${result.thresholds.requireMasks ? ' | Masks required' : ''}
+    detailStats = `
+      <div class="detail-stats">
+        <div class="stats">Originality: ${result.originalityPercent.toFixed(2)}%</div>
+        <div class="stats">Diff Pixels: ${result.diffPixels} / ${result.totalPixels}</div>
+        <div class="stats">Diff Ratio: ${(result.diffPixelRatio * 100).toFixed(4)}%</div>
+        <div class="stats">Thresholds: WARN ${(result.thresholds.warn.diffPixelRatio * 100).toFixed(4)}% / ${result.thresholds.warn.diffPixels}px | FAIL ${(result.thresholds.fail.diffPixelRatio * 100).toFixed(4)}% / ${result.thresholds.fail.diffPixels}px</div>
+        ${result.thresholds.requireMasks ? '<div class="stats">⚠️ Masks required</div>' : ''}
       </div>
     `;
   }
 
   let images = '';
   if (result.status !== 'PASS' && !result.error) {
-    const relativeExpected = path.relative(
-      outDir,
-      result.expectedPath || ''
-    );
-    const relativeActual = path.relative(outDir, result.actualPath || '');
-    const relativeDiff = result.diffPath
-      ? path.relative(outDir, result.diffPath)
-      : null;
-
     images = `
       <div class="images">
         <div class="image-box">
           <div class="image-label">Expected</div>
-          <img src="${relativeExpected}" alt="Expected">
+          <a href="${result.expectedPath}" target="_blank" class="image-link">
+            <img src="${result.expectedPath}" alt="Expected">
+          </a>
         </div>
         <div class="image-box">
           <div class="image-label">Actual</div>
-          <img src="${relativeActual}" alt="Actual">
+          <a href="${result.actualPath}" target="_blank" class="image-link">
+            <img src="${result.actualPath}" alt="Actual">
+          </a>
         </div>
         ${
-          relativeDiff
+          result.diffPath
             ? `
         <div class="image-box">
           <div class="image-label">Diff</div>
-          <img src="${relativeDiff}" alt="Diff">
+          <a href="${result.diffPath}" target="_blank" class="image-link">
+            <img src="${result.diffPath}" alt="Diff">
+          </a>
         </div>
         `
             : ''
@@ -515,16 +624,29 @@ function generateResultItem(result: ScreenResult, outDir: string): string {
     `;
   }
 
+  const summaryStats = !result.error 
+    ? `${result.originalityPercent.toFixed(2)}% match • ${result.diffPixels}px diff` 
+    : 'Navigation failed';
+
   return `
-    <div class="result-item ${statusClass}">
+    <div class="result-item ${statusClass}" data-status="${result.status}">
       <div class="result-header">
-        <div class="screen-name">${result.screenId} - ${result.name}</div>
-        <div class="badge ${statusClass}">${result.status}</div>
+        <div class="header-left">
+          <span class="expand-icon">▶</span>
+          <div>
+            <div class="screen-name">${result.screenId} - ${result.name}</div>
+            <div class="screen-url">${result.url}</div>
+          </div>
+        </div>
+        <div>
+          <div class="badge ${statusClass}">${result.status}</div>
+          <div class="stats" style="margin-top: 0.25rem; text-align: right;">${summaryStats}</div>
+        </div>
       </div>
-      <div class="stats">URL: ${result.url}</div>
-      ${stats}
-      ${result.error ? `<div class="error">Error: ${result.error}</div>` : ''}
-      ${images}
+      <div class="result-details">
+        ${result.error ? `<div class="error">Error: ${result.error}</div>` : detailStats}
+        ${images}
+      </div>
     </div>
   `;
 }
