@@ -396,12 +396,12 @@ export function BaselinesPage() {
               Import ZIP
             </Button>
           </div>
-          <div className="text-sm text-muted-foreground max-w-lg mx-auto mt-6 border-t pt-6">
-            <p className="mb-2">
-              <strong>Note:</strong> Baselines are saved to <code className="bg-accent px-1 rounded">/baselines</code> and should be committed to git.
+          <div className="text-sm text-muted-foreground max-w-lg mx-auto mt-6 border-t border-border pt-6">
+            <p className="mb-2 text-muted-foreground">
+              <strong className="text-foreground">Note:</strong> Baselines are saved to <code className="bg-accent px-1 rounded text-accent-foreground">/baselines</code> and should be committed to git.
             </p>
-            <p className="font-semibold mb-2 mt-4">Supported workflows:</p>
-            <ul className="text-left space-y-1">
+            <p className="font-semibold mb-2 mt-4 text-foreground">Supported workflows:</p>
+            <ul className="text-left space-y-1 text-muted-foreground">
               <li>• Upload Images: PNG, JPG, JPEG, WEBP (max 5MB each)</li>
               <li>• Import ZIP: baselines/manifest.json structure</li>
               <li>• Infer screen IDs from filenames</li>
