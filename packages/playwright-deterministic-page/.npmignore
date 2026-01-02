@@ -1,0 +1,9 @@
+src/
+tests/
+*.test.ts
+*.spec.ts
+vitest.config.ts
+playwright.config.ts
+tsconfig.json
+node_modules/
+.git/

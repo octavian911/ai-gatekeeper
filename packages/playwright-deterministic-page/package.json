@@ -1,0 +1,49 @@
+{
+  "name": "@ai-output-gate/playwright-deterministic-page",
+  "version": "1.0.0",
+  "description": "Playwright plugin for deterministic page preparation and visual testing",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "playwright",
+    "testing",
+    "deterministic",
+    "visual-regression",
+    "screenshot",
+    "fixture"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "test:pw": "playwright test"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "playwright": ">=1.35.0",
+    "@playwright/test": ">=1.35.0"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
+  }
+}

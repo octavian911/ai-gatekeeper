@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   isAllowedDomain,
   isLayoutStable,
-  DETERMINISTIC_DEFAULTS,
-  type BoundingBox,
-} from '@ai-output-gate/playwright-deterministic-page';
+} from './helpers.js';
+import { DETERMINISTIC_DEFAULTS } from './types.js';
+import type { BoundingBox } from './types.js';
 
 describe('deterministic helpers', () => {
   describe('DETERMINISTIC_DEFAULTS', () => {

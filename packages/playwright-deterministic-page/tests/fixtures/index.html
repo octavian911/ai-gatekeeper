@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      transition: background-color 0.3s;
+    }
+    .animated-box {
+      width: 200px;
+      height: 200px;
+      background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+      animation: pulse 2s infinite;
+      margin: 20px 0;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    .time-display {
+      font-size: 24px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    .loading {
+      opacity: 0;
+      transition: opacity 1s;
+    }
+    .loading.loaded {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <h1>Deterministic Test Page</h1>
+  <div class="time-display" id="time"></div>
+  <div class="animated-box"></div>
+  <div class="loading" id="content">
+    <p>Dynamic content loaded at: <span id="load-time"></span></p>
+  </div>
+  
+  <script>
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('time').textContent = now.toISOString();
+    }
+    
+    updateTime();
+    setInterval(updateTime, 1000);
+    
+    setTimeout(() => {
+      document.getElementById('content').classList.add('loaded');
+      document.getElementById('load-time').textContent = new Date().toISOString();
+    }, 500);
+  </script>
+</body>
+</html>
