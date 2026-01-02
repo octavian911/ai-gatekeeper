@@ -123,7 +123,7 @@ export function BaselinePreviewDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       <div className="ml-auto relative z-50 bg-background border-l w-full max-w-2xl h-full overflow-y-auto">
         <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">

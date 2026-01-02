@@ -180,7 +180,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && handleClose()}>
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-card border rounded-lg p-6 w-full max-w-5xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
