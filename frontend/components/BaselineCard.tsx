@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, AlertCircle, Upload, Eye } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Eye, RotateCw, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 
 interface BaselineCardProps {
@@ -10,16 +10,18 @@ interface BaselineCardProps {
     tags?: string[];
     hasImage: boolean;
     validated?: boolean;
+    status?: string;
+    statusMessage?: string;
     size?: number;
+    viewportWidth?: number;
+    viewportHeight?: number;
   };
-  onUpload: (screenId: string) => void;
   onView: (screenId: string) => void;
   onValidate: (screenId: string) => void;
 }
 
 export function BaselineCard({
   baseline,
-  onUpload,
   onView,
   onValidate,
 }: BaselineCardProps) {
@@ -34,9 +36,9 @@ export function BaselineCard({
   };
 
   const getStatusText = () => {
-    if (!baseline.hasImage) return "No image";
+    if (!baseline.hasImage) return "Missing";
     if (baseline.validated) return "Validated";
-    return "Invalid hash";
+    return "Invalid";
   };
 
   const formatSize = (bytes?: number) => {
@@ -60,20 +62,34 @@ export function BaselineCard({
       </div>
 
       <div className="space-y-2 mb-4">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">URL:</span>
-          <code className="text-xs bg-muted px-2 py-1 rounded">{baseline.url}</code>
-        </div>
+        {baseline.url && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Route:</span>
+            <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">{baseline.url}</code>
+          </div>
+        )}
+        {baseline.viewportWidth && baseline.viewportHeight && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Viewport:</span>
+            <span className="text-foreground">{baseline.viewportWidth}×{baseline.viewportHeight}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Size:</span>
           <span className="text-foreground">{formatSize(baseline.size)}</span>
         </div>
         <div className="flex items-start justify-between text-sm">
           <span className="text-muted-foreground">Hash:</span>
-          <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">
-            {baseline.hash}
+          <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate" title={baseline.hash}>
+            {baseline.hash.slice(0, 12)}...
           </code>
         </div>
+        {baseline.statusMessage && (
+          <div className="flex items-start gap-2 text-sm">
+            <AlertCircle className="size-3 text-yellow-500 mt-0.5 flex-shrink-0" />
+            <span className="text-muted-foreground text-xs">{baseline.statusMessage}</span>
+          </div>
+        )}
         {baseline.tags && baseline.tags.length > 0 && (
           <div className="flex items-start gap-2 text-sm">
             <span className="text-muted-foreground">Tags:</span>
@@ -92,23 +108,15 @@ export function BaselineCard({
       </div>
 
       <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onUpload(baseline.screenId)}
-          className="flex-1"
-        >
-          <Upload />
-          Upload
-        </Button>
-        {baseline.hasImage && (
+        {baseline.hasImage ? (
           <>
             <Button
               variant="outline"
               size="sm"
               onClick={() => onView(baseline.screenId)}
+              className="flex-1"
             >
-              <Eye />
+              <Eye className="size-3" />
               View
             </Button>
             <Button
@@ -116,9 +124,14 @@ export function BaselineCard({
               size="sm"
               onClick={() => onValidate(baseline.screenId)}
             >
-              Validate
+              <RotateCw className="size-3" />
+              Re-validate
             </Button>
           </>
+        ) : (
+          <div className="text-sm text-muted-foreground text-center py-2 flex-1">
+            No baseline image found
+          </div>
         )}
       </div>
     </div>

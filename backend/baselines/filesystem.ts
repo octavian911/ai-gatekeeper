@@ -68,12 +68,17 @@ export async function writeScreenConfig(screenId: string, config: ScreenConfig):
 }
 
 export async function readBaselineImage(screenId: string): Promise<Buffer | null> {
-  try {
-    const imagePath = path.join(BASELINES_DIR, screenId, "baseline.png");
-    return await fs.readFile(imagePath);
-  } catch {
-    return null;
+  const screenDir = path.join(BASELINES_DIR, screenId);
+  const extensions = ["png", "jpg", "jpeg", "webp"];
+  
+  for (const ext of extensions) {
+    try {
+      const imagePath = path.join(screenDir, `baseline.${ext}`);
+      return await fs.readFile(imagePath);
+    } catch {}
   }
+  
+  return null;
 }
 
 export async function writeBaselineImage(screenId: string, imageBuffer: Buffer): Promise<void> {
@@ -97,13 +102,18 @@ export async function getImageHash(imageBuffer: Buffer): Promise<string> {
 }
 
 export async function getImageMtime(screenId: string): Promise<Date | null> {
-  try {
-    const imagePath = path.join(BASELINES_DIR, screenId, "baseline.png");
-    const stats = await fs.stat(imagePath);
-    return stats.mtime;
-  } catch {
-    return null;
+  const screenDir = path.join(BASELINES_DIR, screenId);
+  const extensions = ["png", "jpg", "jpeg", "webp"];
+  
+  for (const ext of extensions) {
+    try {
+      const imagePath = path.join(screenDir, `baseline.${ext}`);
+      const stats = await fs.stat(imagePath);
+      return stats.mtime;
+    } catch {}
   }
+  
+  return null;
 }
 
 export async function readPolicy(): Promise<any | null> {

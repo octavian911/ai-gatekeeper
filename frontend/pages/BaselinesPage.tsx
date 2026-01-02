@@ -4,7 +4,8 @@ import { BaselineCard } from "../components/BaselineCard";
 import { BaselineUploadModal, BaselineInput } from "../components/BaselineUploadModal";
 import { ImportZipModal } from "../components/ImportZipModal";
 import { BaselinePreviewDrawer } from "../components/BaselinePreviewDrawer";
-import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, GitBranch } from "lucide-react";
+import { ReviewerGuidancePanel } from "../components/ReviewerGuidancePanel";
+import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, GitBranch, Download } from "lucide-react";
 import { Button } from "../components/ui/button";
 import type { BaselineMetadata } from "~backend/baselines/list_fs";
 
@@ -24,6 +25,7 @@ export function BaselinesPage() {
     baselinesChanged: false,
     changedFiles: [],
   });
+  const [exporting, setExporting] = useState(false);
 
   const fetchBaselines = async () => {
     setLoading(true);
@@ -177,6 +179,28 @@ export function BaselinesPage() {
     }
   };
 
+  const handleExportZip = async () => {
+    setExporting(true);
+    try {
+      const response = await backend.baselines.exportZipFs();
+      const blob = new Blob(
+        [Uint8Array.from(atob(response.zipData), (c) => c.charCodeAt(0))],
+        { type: "application/zip" }
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = response.filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to export baselines");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleUpdateMetadata = async (
     screenId: string,
     updates: {
@@ -223,21 +247,32 @@ export function BaselinesPage() {
         <div className="mb-6 bg-yellow-500/10 border border-yellow-500 rounded-lg p-4 flex items-start gap-3">
           <GitBranch className="size-5 text-yellow-500 mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold text-foreground">Baselines changed</p>
+            <p className="font-semibold text-foreground">Baselines changed. Commit these changes to preserve version history.</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Commit your changes to preserve versioning. {gitStatus.changedFiles.length} file(s) modified.
+              {gitStatus.changedFiles.length} file(s) modified in /baselines
             </p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const fileList = gitStatus.changedFiles.join("\n");
+              alert(`Changed files:\n${fileList}`);
+            }}
+          >
+            Show Changed Files
+          </Button>
         </div>
       )}
 
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Baseline Management</h1>
-          <p className="text-muted-foreground">
-            Upload, validate, and manage visual regression test baselines.
-          </p>
-        </div>
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Baseline Management</h1>
+            <p className="text-muted-foreground">
+              Upload, validate, and manage visual regression test baselines.
+            </p>
+          </div>
         <div className="flex gap-2">
           <Button onClick={() => setShowUploadModal(true)}>
             <Upload className="size-4" />
@@ -247,7 +282,13 @@ export function BaselinesPage() {
             <FileArchive className="size-4" />
             Import ZIP
           </Button>
+          <Button variant="outline" onClick={handleExportZip} disabled={exporting || stats.total === 0}>
+            <Download className="size-4" />
+            {exporting ? "Exporting..." : "Export ZIP"}
+          </Button>
         </div>
+        </div>
+        <ReviewerGuidancePanel />
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -356,7 +397,10 @@ export function BaselinesPage() {
             </Button>
           </div>
           <div className="text-sm text-muted-foreground max-w-lg mx-auto mt-6 border-t pt-6">
-            <p className="font-semibold mb-2">Supported workflows:</p>
+            <p className="mb-2">
+              <strong>Note:</strong> Baselines are saved to <code className="bg-accent px-1 rounded">/baselines</code> and should be committed to git.
+            </p>
+            <p className="font-semibold mb-2 mt-4">Supported workflows:</p>
             <ul className="text-left space-y-1">
               <li>• Upload Images: PNG, JPG, JPEG, WEBP (max 5MB each)</li>
               <li>• Import ZIP: baselines/manifest.json structure</li>
@@ -371,7 +415,6 @@ export function BaselinesPage() {
             <BaselineCard
               key={baseline.screenId}
               baseline={baseline}
-              onUpload={() => {}}
               onView={handleView}
               onValidate={handleValidate}
             />
