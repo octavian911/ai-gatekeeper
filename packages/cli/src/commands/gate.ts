@@ -127,20 +127,21 @@ gateCommand
 gateCommand
   .command('pack')
   .description('Generate evidence pack')
-  .option('-r, --run <runId>', 'Pack specific run (default: latest)')
+  .option('--runId <id>', 'Pack specific run (default: latest)')
+  .option('--out <path>', 'Output path (default: evidence.zip in run directory)')
   .action(async (options) => {
     const spinner = ora('Creating evidence pack...').start();
 
     try {
-      const runId = options.run || 'latest';
+      const runId = options.runId || 'latest';
       const runDir = path.join(process.cwd(), 'runs', runId);
-      const outputPath = path.join(runDir, 'evidence.zip');
+      const outputPath = options.out || path.join(runDir, 'evidence.zip');
 
       const pack = await createEvidencePack(runDir, outputPath);
 
-      spinner.succeed(`Evidence pack created: ${chalk.cyan(outputPath)}`);
-      console.log(`\n  Files: ${pack.manifest.actuals.length} screenshots`);
-      console.log(`  Diffs: ${pack.manifest.diffs.length} differences`);
+      spinner.succeed(`Evidence pack created: ${chalk.cyan(pack.outputPath)}`);
+      console.log(`\n  Files: ${pack.fileCount}`);
+      console.log(`  Location: ${chalk.cyan(pack.outputPath)}`);
     } catch (error) {
       spinner.fail('Failed to create evidence pack');
       console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));

@@ -55,15 +55,14 @@ export interface GateResult {
   flakeRate?: number;
 }
 
-export interface EvidencePack {
-  runId: string;
-  timestamp: string;
-  manifest: {
-    baselines: { path: string; hash: string }[];
-    actuals: { path: string; hash: string }[];
-    diffs: { path: string; hash: string }[];
-    summary: { path: string; hash: string };
-  };
+export interface EvidencePackManifest {
+  files: Array<{ path: string; hash: string }>;
+}
+
+export interface EvidencePackResult {
+  outputPath: string;
+  manifest: EvidencePackManifest;
+  fileCount: number;
 }
 
 export interface MaskSuggestion {
