@@ -1,25 +1,23 @@
 import { useState, useCallback } from "react";
-import { Upload, X, CheckCircle } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { Button } from "./ui/button";
 
 interface UploadDialogProps {
   screenId: string;
   screenName: string;
   onClose: () => void;
-  onUpload: (screenId: string, file: File) => Promise<void>;
+  onCompare: (screenId: string, file: File, preview: string) => void;
 }
 
 export function UploadDialog({
   screenId,
   screenName,
   onClose,
-  onUpload,
+  onCompare,
 }: UploadDialogProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploaded, setUploaded] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -58,21 +56,9 @@ export function UploadDialog({
     }
   }, []);
 
-  const handleUpload = async () => {
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      await onUpload(screenId, file);
-      setUploaded(true);
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } catch (error) {
-      console.error("Upload failed:", error);
-    } finally {
-      setUploading(false);
-    }
+  const handleContinue = () => {
+    if (!file || !preview) return;
+    onCompare(screenId, file, preview);
   };
 
   return (
@@ -133,11 +119,7 @@ export function UploadDialog({
               </div>
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-3">
-                  {uploaded ? (
-                    <CheckCircle className="size-5 text-green-500" />
-                  ) : (
-                    <Upload className="size-5 text-muted-foreground" />
-                  )}
+                  <Upload className="size-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm font-medium text-foreground">{file?.name}</p>
                     <p className="text-xs text-muted-foreground">
@@ -145,32 +127,30 @@ export function UploadDialog({
                     </p>
                   </div>
                 </div>
-                {!uploaded && (
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => {
-                      setFile(null);
-                      setPreview(null);
-                    }}
-                  >
-                    <X />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => {
+                    setFile(null);
+                    setPreview(null);
+                  }}
+                >
+                  <X />
+                </Button>
               </div>
             </div>
           )}
         </div>
 
         <div className="sticky bottom-0 bg-background border-t px-6 py-4 flex gap-3 justify-end">
-          <Button variant="outline" onClick={onClose} disabled={uploading}>
+          <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button
-            onClick={handleUpload}
-            disabled={!file || uploading || uploaded}
+            onClick={handleContinue}
+            disabled={!file}
           >
-            {uploading ? "Uploading..." : uploaded ? "Uploaded!" : "Upload Baseline"}
+            Continue to Compare
           </Button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import backend from "~backend/client";
 import { BaselineCard } from "../components/BaselineCard";
 import { UploadDialog } from "../components/UploadDialog";
+import { ComparisonDialog } from "../components/ComparisonDialog";
 import { ImagePreviewDialog } from "../components/ImagePreviewDialog";
 import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -16,6 +17,13 @@ export function BaselinesPage() {
   const [uploadDialog, setUploadDialog] = useState<{
     screenId: string;
     screenName: string;
+  } | null>(null);
+  const [comparisonDialog, setComparisonDialog] = useState<{
+    screenId: string;
+    screenName: string;
+    currentImageData?: string;
+    newImageData: string;
+    newFile: File;
   } | null>(null);
   const [previewDialog, setPreviewDialog] = useState<{
     screenId: string;
@@ -65,7 +73,31 @@ export function BaselinesPage() {
     setFilteredBaselines(filtered);
   }, [searchQuery, filterStatus, baselines]);
 
-  const handleUpload = async (screenId: string, file: File) => {
+  const handleCompare = async (screenId: string, file: File, preview: string) => {
+    const baseline = baselines.find((b) => b.screenId === screenId);
+    if (!baseline) return;
+
+    let currentImageData: string | undefined;
+    if (baseline.hasImage) {
+      try {
+        const response = await backend.baselines.getImage({ screenId });
+        currentImageData = response.imageData;
+      } catch (error) {
+        console.error("Failed to load current image:", error);
+      }
+    }
+
+    setUploadDialog(null);
+    setComparisonDialog({
+      screenId,
+      screenName: baseline.name,
+      currentImageData,
+      newImageData: preview,
+      newFile: file,
+    });
+  };
+
+  const handleApprove = async (screenId: string, file: File) => {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const arrayBuffer = e.target?.result as ArrayBuffer;
@@ -244,7 +276,19 @@ export function BaselinesPage() {
           screenId={uploadDialog.screenId}
           screenName={uploadDialog.screenName}
           onClose={() => setUploadDialog(null)}
-          onUpload={handleUpload}
+          onCompare={handleCompare}
+        />
+      )}
+
+      {comparisonDialog && (
+        <ComparisonDialog
+          screenId={comparisonDialog.screenId}
+          screenName={comparisonDialog.screenName}
+          currentImageData={comparisonDialog.currentImageData}
+          newImageData={comparisonDialog.newImageData}
+          newFile={comparisonDialog.newFile}
+          onApprove={handleApprove}
+          onReject={() => setComparisonDialog(null)}
         />
       )}
 
