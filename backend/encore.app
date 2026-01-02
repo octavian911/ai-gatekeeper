@@ -1,0 +1,1 @@
+{"id": "ai-output-gate-s8k2", "lang": "typescript"}
