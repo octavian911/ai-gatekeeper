@@ -63,39 +63,39 @@ Note: You only need to review visual diffs. Technical details are handled automa
       {isExpanded && (
         <div className="p-4 space-y-4">
           <div className="bg-background rounded-lg p-4 border">
-            <ol className="space-y-2 text-sm text-foreground">
+            <ol className="space-y-2 text-sm">
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem]">1.</span>
-                <span>Open the Pull Request in GitHub</span>
+                <span className="font-semibold min-w-[1.5rem] text-foreground">1.</span>
+                <span className="text-foreground">Open the Pull Request in GitHub</span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem]">2.</span>
-                <span>Go to the "Checks" tab</span>
+                <span className="font-semibold min-w-[1.5rem] text-foreground">2.</span>
+                <span className="text-foreground">Go to the <strong>"Checks"</strong> tab</span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem]">3.</span>
-                <span>Download the test artifacts (look for visual regression results)</span>
+                <span className="font-semibold min-w-[1.5rem] text-foreground">3.</span>
+                <span className="text-foreground">Download the test artifacts (look for visual regression results)</span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem]">4.</span>
-                <span>Extract the ZIP and open <code className="bg-accent px-1 rounded">report.html</code></span>
+                <span className="font-semibold min-w-[1.5rem] text-foreground">4.</span>
+                <span className="text-foreground">Extract the ZIP and open <code className="bg-accent px-1 rounded text-foreground">report.html</code></span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem]">5.</span>
-                <span>Review all <strong>FAIL</strong> and <strong>WARN</strong> diffs carefully</span>
+                <span className="font-semibold min-w-[1.5rem] text-foreground">5.</span>
+                <span className="text-foreground">Review all <strong>FAIL</strong> and <strong>WARN</strong> diffs carefully</span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem]">6.</span>
-                <span>
+                <span className="font-semibold min-w-[1.5rem] text-foreground">6.</span>
+                <span className="text-foreground">
                   If changes are intentional: add label{" "}
-                  <code className="bg-accent px-1 rounded font-semibold">approve-baseline</code> in GitHub
+                  <code className="bg-accent px-1 rounded font-semibold text-foreground">approve-baseline</code> in GitHub
                 </span>
               </li>
             </ol>
           </div>
 
-          <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
-            <p>
+          <div className="text-sm bg-muted/30 p-3 rounded-lg">
+            <p className="text-foreground">
               <strong>Note:</strong> You only need to review visual diffs. Technical details are handled
               automatically.
             </p>
