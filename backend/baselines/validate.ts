@@ -1,7 +1,5 @@
-import { api } from "encore.dev/api";
-import fs from "fs/promises";
-import path from "path";
-import crypto from "crypto";
+import { api, APIError } from "encore.dev/api";
+import db from "../db";
 
 export interface ValidateBaselineRequest {
   screenId: string;
@@ -18,72 +16,64 @@ export interface ValidateBaselineResponse {
 export const validate = api<ValidateBaselineRequest, ValidateBaselineResponse>(
   { expose: true, method: "POST", path: "/baselines/validate" },
   async (req) => {
-    const manifestPath = path.join(process.cwd(), "baselines", "manifest.json");
-    const manifestContent = await fs.readFile(manifestPath, "utf-8");
-    const manifest = JSON.parse(manifestContent);
-
-    const baseline = manifest.baselines.find(
-      (b: { screenId: string }) => b.screenId === req.screenId
-    );
+    const baseline = await db.queryRow<{
+      id: string;
+      has_image: boolean;
+      hash: string | null;
+      tags: string[];
+      masks: any;
+    }>`
+      SELECT id, has_image, hash, tags, masks
+      FROM baselines
+      WHERE id = ${req.screenId}
+    `;
 
     if (!baseline) {
       return {
         valid: false,
         expectedHash: "",
-        message: "Baseline not found in manifest",
+        message: "Baseline not found",
         hasImage: false,
       };
     }
 
-    const screenPath = path.join(
-      process.cwd(),
-      "baselines",
-      req.screenId,
-      "screen.png"
-    );
+    if (!baseline.has_image || !baseline.hash) {
+      return {
+        valid: false,
+        expectedHash: baseline.hash || "",
+        message: "Baseline image is missing",
+        hasImage: false,
+      };
+    }
 
-    try {
-      await fs.access(screenPath);
-      const imageData = await fs.readFile(screenPath);
-      const actualHash = crypto.createHash("sha256").update(imageData).digest("hex");
+    const isPlaceholder = baseline.hash.includes("placeholder");
 
-      const isPlaceholder = baseline.hash.includes("placeholder");
-      const hashesMatch = actualHash === baseline.hash;
-
-      if (isPlaceholder) {
-        return {
-          valid: false,
-          expectedHash: baseline.hash,
-          actualHash,
-          message: "Hash is a placeholder value",
-          hasImage: true,
-        };
-      }
-
-      if (hashesMatch) {
-        return {
-          valid: true,
-          expectedHash: baseline.hash,
-          actualHash,
-          message: "Hash matches expected value",
-          hasImage: true,
-        };
-      }
-
+    if (isPlaceholder) {
       return {
         valid: false,
         expectedHash: baseline.hash,
-        actualHash,
-        message: "Hash mismatch",
+        actualHash: baseline.hash,
+        message: "Hash is a placeholder value",
         hasImage: true,
       };
-    } catch {
+    }
+
+    if (baseline.tags.includes("noisy") && (!baseline.masks || baseline.masks.length === 0)) {
       return {
         valid: false,
         expectedHash: baseline.hash,
-        message: "Image file not found",
-        hasImage: false,
+        actualHash: baseline.hash,
+        message: "Baseline tagged as 'noisy' requires at least one mask",
+        hasImage: true,
       };
     }
+
+    return {
+      valid: true,
+      expectedHash: baseline.hash,
+      actualHash: baseline.hash,
+      message: "Baseline is valid",
+      hasImage: true,
+    };
   }
 );

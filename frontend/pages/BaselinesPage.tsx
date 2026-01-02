@@ -4,7 +4,9 @@ import { BaselineCard } from "../components/BaselineCard";
 import { UploadDialog } from "../components/UploadDialog";
 import { ComparisonDialog } from "../components/ComparisonDialog";
 import { ImagePreviewDialog } from "../components/ImagePreviewDialog";
-import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { BaselineUploadModal } from "../components/BaselineUploadModal";
+import { BaselinePreviewDrawer } from "../components/BaselinePreviewDrawer";
+import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, Layers } from "lucide-react";
 import { Button } from "../components/ui/button";
 import type { BaselineMetadata } from "~backend/baselines/list";
 
@@ -30,6 +32,11 @@ export function BaselinesPage() {
     screenName: string;
     imageData: string;
     hash: string;
+  } | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [previewDrawer, setPreviewDrawer] = useState<{
+    baseline: BaselineMetadata;
+    imageData: string;
   } | null>(null);
 
   const fetchBaselines = async () => {
@@ -120,11 +127,9 @@ export function BaselinesPage() {
       const response = await backend.baselines.getImage({ screenId });
       const baseline = baselines.find((b) => b.screenId === screenId);
       if (baseline) {
-        setPreviewDialog({
-          screenId,
-          screenName: baseline.name,
+        setPreviewDrawer({
+          baseline,
           imageData: response.imageData,
-          hash: response.hash,
         });
       }
     } catch (error) {
@@ -134,12 +139,50 @@ export function BaselinesPage() {
 
   const handleValidate = async (screenId: string) => {
     try {
-      const response = await backend.baselines.validate({ screenId });
+      const response = await backend.baselines.validateBaseline({ screenId });
       alert(response.message);
       await fetchBaselines();
     } catch (error) {
       console.error("Validation failed:", error);
     }
+  };
+
+  const handleDelete = async (screenId: string) => {
+    try {
+      await backend.baselines.deleteBaseline({ screenId });
+      await fetchBaselines();
+    } catch (error) {
+      console.error("Delete failed:", error);
+    }
+  };
+
+  const handleUploadBaselines = async (baselineInputs: any[]) => {
+    const baselinesData = await Promise.all(
+      baselineInputs.map(async (input) => {
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onload = (e) => {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            const uint8Array = new Uint8Array(arrayBuffer);
+            resolve(btoa(String.fromCharCode(...uint8Array)));
+          };
+          reader.readAsArrayBuffer(input.file);
+        });
+
+        return {
+          screenId: input.screenId,
+          name: input.name,
+          route: input.route,
+          tags: input.tags,
+          viewportWidth: input.viewportWidth,
+          viewportHeight: input.viewportHeight,
+          imageData: base64,
+        };
+      })
+    );
+
+    await backend.baselines.uploadMulti({ baselines: baselinesData });
+    await fetchBaselines();
   };
 
   const stats = {
@@ -151,11 +194,27 @@ export function BaselinesPage() {
 
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Baseline Management</h1>
-        <p className="text-muted-foreground">
-          Upload, validate, and manage visual regression test baselines.
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Baseline Management</h1>
+          <p className="text-muted-foreground">
+            Upload, validate, and manage visual regression test baselines.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowUploadModal(true)}>
+            <Upload className="size-4" />
+            Upload Baselines
+          </Button>
+          <Button variant="outline" onClick={() => setShowUploadModal(true)}>
+            <FileArchive className="size-4" />
+            Import ZIP
+          </Button>
+          <Button variant="outline" disabled title="Coming soon">
+            <Layers className="size-4" />
+            Generate from Routes
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -246,6 +305,32 @@ export function BaselinesPage() {
           <RefreshCw className="size-8 animate-spin mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground">Loading baselines...</p>
         </div>
+      ) : stats.total === 0 ? (
+        <div className="text-center py-16 bg-card border rounded-lg">
+          <Upload className="size-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-xl font-semibold text-foreground mb-2">No baselines yet</h3>
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Upload baseline images exported from Figma/Stitch, or import a ZIP containing your baselines.
+          </p>
+          <div className="flex gap-3 justify-center mb-4">
+            <Button onClick={() => setShowUploadModal(true)}>
+              <Upload className="size-4" />
+              Upload Baselines
+            </Button>
+            <Button variant="outline" onClick={() => setShowUploadModal(true)}>
+              <FileArchive className="size-4" />
+              Import ZIP
+            </Button>
+          </div>
+          <div className="text-sm text-muted-foreground max-w-lg mx-auto mt-6 border-t pt-6">
+            <p className="font-semibold mb-2">Supported formats:</p>
+            <ul className="text-left space-y-1">
+              <li>• PNG, JPG, JPEG, WEBP images (max 5MB each)</li>
+              <li>• ZIP archives with baselines/manifest.json structure</li>
+              <li>• Screen IDs inferred from filenames</li>
+            </ul>
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredBaselines.map((baseline) => (
@@ -265,7 +350,7 @@ export function BaselinesPage() {
         </div>
       )}
 
-      {!loading && filteredBaselines.length === 0 && (
+      {!loading && filteredBaselines.length === 0 && stats.total > 0 && (
         <div className="text-center py-12 bg-card border rounded-lg">
           <p className="text-muted-foreground">No baselines found matching your filters.</p>
         </div>
@@ -299,6 +384,24 @@ export function BaselinesPage() {
           imageData={previewDialog.imageData}
           hash={previewDialog.hash}
           onClose={() => setPreviewDialog(null)}
+        />
+      )}
+
+      {showUploadModal && (
+        <BaselineUploadModal
+          open={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onUpload={handleUploadBaselines}
+        />
+      )}
+
+      {previewDrawer && (
+        <BaselinePreviewDrawer
+          baseline={previewDrawer.baseline}
+          imageData={previewDrawer.imageData}
+          onClose={() => setPreviewDrawer(null)}
+          onDelete={handleDelete}
+          onRevalidate={handleValidate}
         />
       )}
     </div>

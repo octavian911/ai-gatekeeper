@@ -1,6 +1,6 @@
-import { api } from "encore.dev/api";
-import fs from "fs/promises";
-import path from "path";
+import { api, APIError } from "encore.dev/api";
+import { baselineImages } from "./storage";
+import db from "../db";
 
 export interface GetImageRequest {
   screenId: string;
@@ -14,27 +14,25 @@ export interface GetImageResponse {
 export const getImage = api<GetImageRequest, GetImageResponse>(
   { expose: true, method: "GET", path: "/baselines/:screenId/image" },
   async (req) => {
-    const screenPath = path.join(
-      process.cwd(),
-      "baselines",
-      req.screenId,
-      "screen.png"
-    );
+    const baseline = await db.queryRow<{ hash: string | null; has_image: boolean }>`
+      SELECT hash, has_image FROM baselines WHERE id = ${req.screenId}
+    `;
 
-    const imageBuffer = await fs.readFile(screenPath);
-    const imageData = imageBuffer.toString("base64");
+    if (!baseline) {
+      throw APIError.notFound("Baseline not found");
+    }
 
-    const manifestPath = path.join(process.cwd(), "baselines", "manifest.json");
-    const manifestContent = await fs.readFile(manifestPath, "utf-8");
-    const manifest = JSON.parse(manifestContent);
+    if (!baseline.has_image || !baseline.hash) {
+      throw APIError.notFound("Baseline image not found");
+    }
 
-    const baseline = manifest.baselines.find(
-      (b: { screenId: string }) => b.screenId === req.screenId
-    );
+    const objectName = `${req.screenId}/${baseline.hash}.png`;
+    const imageBuffer = await baselineImages.download(objectName);
+    const base64 = imageBuffer.toString("base64");
 
     return {
-      imageData,
-      hash: baseline?.hash || "",
+      imageData: base64,
+      hash: baseline.hash,
     };
   }
 );
