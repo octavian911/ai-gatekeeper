@@ -71,6 +71,9 @@ export interface MaskSuggestion {
   reason: string;
   confidence: number;
   examples: string[];
+  screenId?: string;
+  type?: 'css' | 'rect';
+  bbox?: { x: number; y: number; width: number; height: number };
 }
 
 export interface Mask {
