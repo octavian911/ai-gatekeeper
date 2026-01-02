@@ -1,0 +1,43 @@
+{
+  "baseUrl": "http://localhost:5173",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "timeout": 30000,
+  "policy": {
+    "pixelDiffThreshold": 0.001,
+    "antiAliasingTolerance": 5,
+    "maxDiffPixels": 100,
+    "tagOverrides": {
+      "chart": {
+        "pixelDiffThreshold": 0.005
+      },
+      "animation": {
+        "pixelDiffThreshold": 0.003
+      }
+    }
+  },
+  "routes": [
+    { "path": "/", "name": "home", "waitForSelector": "h1" },
+    { "path": "/dashboard", "name": "dashboard", "waitForSelector": ".chart" },
+    { "path": "/profile", "name": "profile" },
+    { "path": "/settings", "name": "settings" },
+    { "path": "/users", "name": "users", "waitForSelector": "table" },
+    { "path": "/analytics", "name": "analytics", "waitForSelector": ".chart", "threshold": 0.005 },
+    { "path": "/reports", "name": "reports" },
+    { "path": "/calendar", "name": "calendar" },
+    { "path": "/messages", "name": "messages" },
+    { "path": "/notifications", "name": "notifications" },
+    { "path": "/files", "name": "files" },
+    { "path": "/gallery", "name": "gallery" },
+    { "path": "/pricing", "name": "pricing" },
+    { "path": "/about", "name": "about" },
+    { "path": "/contact", "name": "contact" },
+    { "path": "/help", "name": "help" },
+    { "path": "/docs", "name": "docs" },
+    { "path": "/changelog", "name": "changelog" },
+    { "path": "/roadmap", "name": "roadmap" },
+    { "path": "/team", "name": "team" }
+  ]
+}
