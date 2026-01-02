@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import { baselineCommand } from './commands/baseline.js';
 import { gateCommand } from './commands/gate.js';
 import { masksCommand } from './commands/masks.js';
+import { policyCommand } from './commands/policy.js';
 
 const program = new Command();
 
@@ -16,5 +17,6 @@ program
 program.addCommand(baselineCommand);
 program.addCommand(gateCommand);
 program.addCommand(masksCommand);
+program.addCommand(policyCommand);
 
 program.parse();

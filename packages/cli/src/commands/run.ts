@@ -12,10 +12,14 @@ import {
   type ScreenResult,
   type RunSummary,
   type ViewportConfig,
+  type ResolvedScreenConfig,
   resolveThresholds,
   computeOriginalityPercent,
   evaluateStatus,
   DEFAULT_VIEWPORT,
+  loadOrgPolicy,
+  resolveScreen,
+  computePolicyHash,
 } from '@ai-gate/core';
 
 interface ManifestEntry {
@@ -103,6 +107,12 @@ Troubleshooting:
         process.exit(1);
       }
 
+      const orgPolicy = await loadOrgPolicy();
+      const policyHash = computePolicyHash(orgPolicy);
+      
+      const looseningJustifications: Array<{ screenId: string; justification: string }> = [];
+      let anyLooseningOccurred = false;
+      
       const engine = new ScreenshotEngine();
       await engine.initialize();
       spinner.succeed(`Initialized - testing ${screens.length} screen(s)`);
@@ -129,12 +139,39 @@ Troubleshooting:
           };
         }
 
-        const viewport: ViewportConfig = {
-          ...DEFAULT_VIEWPORT,
-          ...screenConfig.viewport,
-        };
+        let resolvedConfig: ResolvedScreenConfig;
+        try {
+          resolvedConfig = resolveScreen(screenConfig, orgPolicy);
+          
+          if (resolvedConfig.looseningApplied && resolvedConfig.overrideJustification) {
+            anyLooseningOccurred = true;
+            looseningJustifications.push({
+              screenId: screenEntry.screenId,
+              justification: resolvedConfig.overrideJustification,
+            });
+          }
+        } catch (error) {
+          spinner.fail(
+            `${chalk.red('✗ POLICY VIOLATION')} ${screenEntry.screenId} - ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
+          
+          results.push({
+            screenId: screenEntry.screenId,
+            name: screenConfig.name,
+            url: screenConfig.url,
+            status: 'FAIL',
+            diffPixels: 0,
+            diffPixelRatio: 0,
+            totalPixels: 0,
+            originalityPercent: 0,
+            thresholds: resolveThresholds(screenConfig),
+            error: `Policy violation: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+          continue;
+        }
 
-        const thresholds = resolveThresholds(screenConfig);
+        const viewport = resolvedConfig.resolvedViewport;
+        const thresholds = resolvedConfig.resolvedThresholds;
 
         const perScreenDir = path.join(outDir, 'per-screen', screenEntry.screenId);
         await fs.mkdir(perScreenDir, { recursive: true });
@@ -307,6 +344,9 @@ Troubleshooting:
         warned: results.filter((r) => r.status === 'WARN').length,
         failed: results.filter((r) => r.status === 'FAIL').length,
         results: resultsWithRelativePaths,
+        policyHash,
+        looseningOccurred: anyLooseningOccurred,
+        ...(looseningJustifications.length > 0 && { looseningJustifications }),
       };
 
       await fs.writeFile(

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "defaults": {
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "determinism": {
+      "browser": "chromium",
+      "deviceScaleFactor": 1,
+      "locale": "en-US",
+      "timezoneId": "UTC",
+      "colorScheme": "light",
+      "reduceMotion": "reduce",
+      "disableAnimations": true,
+      "blockExternalNetwork": true,
+      "waitUntil": "networkidle",
+      "layoutStabilityMs": 300,
+      "screenshotAfterSettledOnly": true
+    },
+    "thresholds": {
+      "standard": {
+        "warn": {
+          "diffPixelRatio": 0.0002,
+          "diffPixels": 250
+        },
+        "fail": {
+          "diffPixelRatio": 0.0005,
+          "diffPixels": 600
+        }
+      },
+      "critical": {
+        "warn": {
+          "diffPixelRatio": 0.0001,
+          "diffPixels": 150
+        },
+        "fail": {
+          "diffPixelRatio": 0.0003,
+          "diffPixels": 400
+        }
+      },
+      "noisy": {
+        "warn": {
+          "diffPixelRatio": 0.0003,
+          "diffPixels": 350
+        },
+        "fail": {
+          "diffPixelRatio": 0.0008,
+          "diffPixels": 900
+        },
+        "requireMasks": true
+      }
+    }
+  },
+  "tagRules": {
+    "criticalRoutes": ["/login", "/checkout", "/pricing"],
+    "noisyRoutes": ["/dashboard", "/reports", "/analytics"]
+  },
+  "enforcement": {
+    "allowLoosening": false,
+    "allowPerScreenViewportOverride": true,
+    "allowPerScreenMaskOverride": true,
+    "maxMaskCoverageRatio": 0.35
+  }
+}

@@ -140,4 +140,66 @@ export interface RunSummary {
   warned: number;
   failed: number;
   results: ScreenResult[];
+  policyHash?: string;
+  looseningOccurred?: boolean;
+  looseningJustifications?: Array<{ screenId: string; justification: string }>;
+}
+
+export interface DeterministicConfig {
+  browser: 'chromium' | 'firefox' | 'webkit';
+  deviceScaleFactor: number;
+  locale: string;
+  timezoneId: string;
+  colorScheme: 'light' | 'dark';
+  reduceMotion: 'reduce' | 'no-preference';
+  disableAnimations: boolean;
+  blockExternalNetwork: boolean;
+  waitUntil: 'load' | 'domcontentloaded' | 'networkidle' | 'commit';
+  layoutStabilityMs: number;
+  screenshotAfterSettledOnly: boolean;
+}
+
+export interface PolicyThresholds {
+  warn: ThresholdBand;
+  fail: ThresholdBand;
+  requireMasks?: boolean;
+}
+
+export interface PolicyDefaults {
+  viewport: { width: number; height: number };
+  determinism: DeterministicConfig;
+  thresholds: {
+    standard: PolicyThresholds;
+    critical: PolicyThresholds;
+    noisy: PolicyThresholds;
+  };
+}
+
+export interface TagRules {
+  criticalRoutes?: string[];
+  noisyRoutes?: string[];
+}
+
+export interface EnforcementConfig {
+  allowLoosening: boolean;
+  allowPerScreenViewportOverride: boolean;
+  allowPerScreenMaskOverride: boolean;
+  maxMaskCoverageRatio: number;
+}
+
+export interface OrgPolicy {
+  schemaVersion: number;
+  defaults: PolicyDefaults;
+  tagRules?: TagRules;
+  enforcement: EnforcementConfig;
+}
+
+export interface ResolvedScreenConfig extends ScreenBaseline {
+  resolvedViewport: ViewportConfig;
+  resolvedThresholds: ScreenThresholds;
+  resolvedDeterminism: DeterministicConfig;
+  appliedTags: string[];
+  looseningApplied: boolean;
+  overrideJustification?: string;
+  maskCoverageRatio?: number;
 }

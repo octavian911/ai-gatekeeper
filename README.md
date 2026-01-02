@@ -383,6 +383,82 @@ Tag screens with **intentional** dynamic content that can't be masked:
 
 **Effect:** More lenient thresholds (WARN at 0.03%, FAIL at 0.08%). **Requires at least one mask.**
 
+---
+
+## Org-wide Policy (.gate/policy.json)
+
+Set strict organization-wide defaults for viewport, determinism, thresholds, and enforcement rules. This ensures consistent testing across all screens while allowing per-screen overrides with proper justification.
+
+### Quick Start
+
+Create `.gate/policy.json` in your repository root:
+
+```json
+{
+  "schemaVersion": 1,
+  "defaults": {
+    "viewport": { "width": 1280, "height": 720 },
+    "determinism": {
+      "browser": "chromium",
+      "locale": "en-US",
+      "timezoneId": "UTC",
+      "disableAnimations": true,
+      "blockExternalNetwork": true,
+      "waitUntil": "networkidle"
+    },
+    "thresholds": {
+      "standard": {
+        "warn": { "diffPixelRatio": 0.0002, "diffPixels": 250 },
+        "fail": { "diffPixelRatio": 0.0005, "diffPixels": 600 }
+      },
+      "critical": {
+        "warn": { "diffPixelRatio": 0.0001, "diffPixels": 150 },
+        "fail": { "diffPixelRatio": 0.0003, "diffPixels": 400 }
+      },
+      "noisy": {
+        "warn": { "diffPixelRatio": 0.0003, "diffPixels": 350 },
+        "fail": { "diffPixelRatio": 0.0008, "diffPixels": 900 },
+        "requireMasks": true
+      }
+    }
+  },
+  "tagRules": {
+    "criticalRoutes": ["/login", "/checkout", "/pricing"],
+    "noisyRoutes": ["/dashboard", "/reports"]
+  },
+  "enforcement": {
+    "allowLoosening": false,
+    "maxMaskCoverageRatio": 0.35
+  }
+}
+```
+
+### Key Features
+
+- **Automatic tag assignment**: Routes matching `tagRules` automatically get appropriate threshold tiers
+- **Strict enforcement**: `allowLoosening: false` prevents per-screen overrides from weakening thresholds
+- **Mask coverage limit**: `maxMaskCoverageRatio: 0.35` prevents over-masking (screens FAIL if >35% masked)
+- **Justification required**: Loosening thresholds requires `overrideJustification` field in screen.json
+
+### Validate Policy
+
+```bash
+pnpm gate policy validate
+```
+
+Shows resolved configuration, tag rules, enforcement settings, and warns about issues.
+
+### Full Documentation
+
+See [POLICY_GUIDE.md](./POLICY_GUIDE.md) for:
+- Complete schema reference
+- Resolution precedence rules
+- Per-screen override examples
+- Strict enforcement behavior
+- Best practices and troubleshooting
+
+---
+
 ### Approving Baselines with `approve-baseline`
 
 When the gate detects intentional visual changes (e.g., UI redesign, new features), approve and commit updated baselines:
