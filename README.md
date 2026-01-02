@@ -107,6 +107,9 @@ pnpm generate:baselines
 # 4. Run the harness (starts app, runs gate, stops app)
 pnpm harness:run-once
 
+# 5. Validate regression detection (optional, proves gate catches drift)
+pnpm harness:regression-check
+
 # Or manually:
 # Start demo app
 pnpm demo:start  # Runs on http://localhost:5173
@@ -293,6 +296,24 @@ See `.github/workflows/` for workflow definitions.
 | Runtime | ≤5min | 20 screens in CI |
 | False FAIL | ≤2% | 100+ no-change runs |
 | Onboarding | ≤15min | Clone to first PR comment |
+
+## Harness Validation
+
+To prove the gate correctly detects meaningful visual drift and avoids false confidence, run:
+
+```bash
+pnpm harness:regression-check
+```
+
+This automated validation:
+1. ✅ Runs baseline gate check (should PASS)
+2. ✅ Tests `button-padding` regression on screen-03 (should FAIL)
+3. ✅ Tests `missing-banner` regression on screen-07 (should FAIL)
+4. ✅ Tests `font-size` regression on screen-10 (should FAIL)
+
+See [HARNESS_VALIDATION.md](./HARNESS_VALIDATION.md) for details.
+
+**CI Integration**: The `regression-validation` job runs on `main` branch only to keep PR checks fast.
 
 ## License
 
