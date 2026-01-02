@@ -14,18 +14,45 @@ import {
 } from '@ai-gate/core';
 import { loadConfig } from '../config.js';
 
-export const masksCommand = new Command('masks').description(
-  'Analyze and suggest element masks'
-);
+export const masksCommand = new Command('masks')
+  .description('Analyze and suggest element masks for dynamic content')
+  .addHelpText('after', `
+Masks exclude dynamic elements (timestamps, live data) from visual comparison.
+
+Examples:
+  $ pnpm gate masks suggest --baseURL http://localhost:5173
+  $ pnpm gate masks suggest --baseURL http://localhost:5173 --screen screen-05
+  $ pnpm gate masks suggest --baseURL http://localhost:5173 --apply
+  $ pnpm gate masks suggest --baseURL http://localhost:5173 --reload --maxSuggestions 5`);
 
 masksCommand
   .command('suggest')
-  .description('Suggest masks for dynamic elements')
-  .requiredOption('--baseURL <url>', 'Base URL of the application')
-  .option('--screen <id>', 'Specific screen ID to analyze')
-  .option('--apply', 'Apply high-confidence suggestions to baseline files')
-  .option('--maxSuggestions <number>', 'Maximum suggestions per screen', '8')
-  .option('--reload', 'Reload page between snapshots')
+  .description('Suggest masks for dynamic elements (timestamps, IDs, live data)')
+  .requiredOption('--baseURL <url>', 'Base URL of running application')
+  .option('--screen <id>', 'Analyze specific screen ID only')
+  .option('--apply', 'Auto-apply high-confidence suggestions (≥75%) to baseline files')
+  .option('--maxSuggestions <number>', 'Max suggestions per screen (default: 8)', '8')
+  .option('--reload', 'Reload page between snapshots for better detection')
+  .addHelpText('after', `
+What it detects:
+  - Elements with changing text (timestamps, counters, quotes)
+  - Elements with shifting bounding boxes
+  - High-confidence suggestions (≥75%) are safe to auto-apply
+
+Examples:
+  Analyze all screens:
+    $ pnpm gate masks suggest --baseURL http://localhost:5173
+
+  Analyze specific screen:
+    $ pnpm gate masks suggest --baseURL http://localhost:5173 --screen screen-05
+
+  Auto-apply high-confidence masks:
+    $ pnpm gate masks suggest --baseURL http://localhost:5173 --apply
+
+  Use reload mode for more accurate detection:
+    $ pnpm gate masks suggest --baseURL http://localhost:5173 --reload
+
+Tip: Review suggestions before using --apply on production baselines`)
   .action(async (options) => {
     try {
       const config = await loadConfig();
@@ -79,7 +106,10 @@ masksCommand
           screenConfig = JSON.parse(screenData);
         } catch (error) {
           console.log(
-            chalk.yellow(`⚠ Skipping ${screenId}: screen.json not found`)
+            chalk.yellow(`  ⚠ Skipping ${screenId}: screen.json not found`)
+          );
+          console.log(
+            chalk.dim(`     Expected: ${screenPath}`)
           );
           continue;
         }

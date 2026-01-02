@@ -31,11 +31,29 @@ interface Manifest {
 }
 
 export const runCommand = new Command('run')
-  .description('Run visual regression gate')
-  .requiredOption('--baseURL <url>', 'Base URL to test against')
-  .option('--ci', 'CI mode: exit 1 on any FAIL')
-  .option('--outDir <dir>', 'Output directory for run results')
-  .option('--screens <ids>', 'Comma-separated screen IDs to test')
+  .description('Run visual regression gate against baselines')
+  .requiredOption('--baseURL <url>', 'Base URL of running application (e.g., http://localhost:5173)')
+  .option('--ci', 'CI mode: exit code 1 on any FAIL status')
+  .option('--outDir <dir>', 'Output directory for run results (default: runs/run-TIMESTAMP)')
+  .option('--screens <ids>', 'Comma-separated screen IDs to test (e.g., screen-01,screen-03)')
+  .addHelpText('after', `
+Examples:
+  Run all screens:
+    $ pnpm gate run --baseURL http://localhost:5173
+
+  Run in CI mode (fail build on any FAIL):
+    $ pnpm gate run --baseURL http://localhost:5173 --ci
+
+  Test specific screens only:
+    $ pnpm gate run --baseURL http://localhost:5173 --screens screen-01,screen-05
+
+  Custom output directory:
+    $ pnpm gate run --baseURL http://localhost:5173 --outDir ./custom-runs
+
+Troubleshooting:
+  - Ensure baselines exist: pnpm gate baseline list
+  - Enable debug mode: GATE_DEBUG=1 pnpm gate run --baseURL <url>
+  - Check report: open runs/latest/report.html`)
   .action(async (options) => {
     const spinner = ora('Initializing gate run...').start();
 
@@ -57,8 +75,13 @@ export const runCommand = new Command('run')
       try {
         const manifestData = await fs.readFile(manifestPath, 'utf-8');
         manifest = JSON.parse(manifestData);
-      } catch {
+      } catch (error) {
         spinner.fail('No baselines/manifest.json found');
+        console.error(chalk.red('\nError: Baselines not found. You must create baselines before running the gate.'));
+        console.error(chalk.dim('\nCreate baselines:'));
+        console.error(chalk.dim('  $ pnpm gate baseline add --from /path/to/screenshots'));
+        console.error(chalk.dim('\nOr generate fresh baselines:'));
+        console.error(chalk.dim('  $ pnpm generate:baselines  # Requires demo app running'));
         process.exit(1);
       }
 
@@ -69,6 +92,14 @@ export const runCommand = new Command('run')
 
       if (screens.length === 0) {
         spinner.fail('No screens to test');
+        console.error(chalk.red('\nError: No matching screens found.'));
+        if (screensFilter) {
+          console.error(chalk.dim(`\nRequested: ${screensFilter.join(', ')}`));
+          console.error(chalk.dim('\nAvailable screens:'));
+          manifest.baselines.forEach(b => console.error(chalk.dim(`  - ${b.screenId}`)));
+        } else {
+          console.error(chalk.dim('\nThe manifest.json file contains no baseline entries.'));
+        }
         process.exit(1);
       }
 
@@ -89,7 +120,8 @@ export const runCommand = new Command('run')
         try {
           const screenData = await fs.readFile(screenJsonPath, 'utf-8');
           screenConfig = JSON.parse(screenData);
-        } catch {
+        } catch (error) {
+          console.log(chalk.yellow(`  ⚠ Missing screen.json for ${screenEntry.screenId}, using manifest data`));
           screenConfig = {
             name: screenEntry.name,
             url: screenEntry.url,

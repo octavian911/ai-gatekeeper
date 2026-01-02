@@ -50,15 +50,34 @@ async function computeHash(filePath: string): Promise<string> {
 }
 
 export const baselineCommand = new Command('baseline')
-  .description('Manage baseline screenshots');
+  .description('Manage baseline screenshots')
+  .addHelpText('after', `
+Examples:
+  $ pnpm gate baseline add --from ./screenshots
+  $ pnpm gate baseline add --from ./screenshots --meta screens.json
+  $ pnpm gate baseline list
+  $ pnpm gate baseline validate --check-hash
+  $ pnpm gate baseline update --baseURL http://localhost:5173
+  $ pnpm gate baseline update --baseURL http://localhost:5173 --changedOnly
+
+Documentation: https://github.com/YOUR_ORG/ai-output-gate#baseline-management`);
 
 baselineCommand
   .command('add')
-  .description('Capture new baseline screenshots or add from folder')
+  .description('Capture new baseline screenshots or import from PNG folder')
   .option('-r, --route <route>', 'Capture specific route only')
   .option('--from <folder>', 'Import baselines from PNG folder')
-  .option('--meta <file>', 'JSON file with screen metadata (screens.json)')
-  .option('--out <dir>', 'Output directory for baselines', 'baselines')
+  .option('--meta <file>', 'JSON file with screen metadata (use with --from)')
+  .option('--out <dir>', 'Output directory for baselines (default: baselines)', 'baselines')
+  .addHelpText('after', `
+Examples:
+  Import from folder:
+    $ pnpm gate baseline add --from ./screenshots
+    $ pnpm gate baseline add --from ./screenshots --meta screens.json
+
+  Capture from running app (requires config):
+    $ pnpm gate baseline add
+    $ pnpm gate baseline add --route /dashboard`)
   .action(async (options) => {
     if (options.from) {
       const spinner = ora('Importing baselines from folder...').start();
@@ -88,7 +107,9 @@ baselineCommand
         const pngFiles = files.filter(f => f.toLowerCase().endsWith('.png'));
         
         if (pngFiles.length === 0) {
-          spinner.fail('No PNG files found in source folder');
+          spinner.fail(`No PNG files found in ${chalk.cyan(fromDir)}`);
+          console.error(chalk.red('\nError: The specified folder contains no .png files.'));
+          console.error(chalk.dim('\nTip: Ensure the folder contains baseline screenshots in PNG format.'));
           process.exit(1);
         }
         
@@ -179,7 +200,11 @@ baselineCommand
           : config.routes;
 
         if (routes.length === 0) {
-          throw new Error(`Route ${options.route} not found`);
+          spinner.fail(`Route ${chalk.cyan(options.route)} not found`);
+          console.error(chalk.red('\nError: The specified route does not exist in the configuration.'));
+          console.error(chalk.dim('\nAvailable routes:'));
+          config.routes.forEach(r => console.error(chalk.dim(`  - ${r.path}`)));
+          process.exit(1);
         }
 
         for (const route of routes) {
@@ -222,8 +247,11 @@ baselineCommand
 
 baselineCommand
   .command('list')
-  .description('List all baseline screenshots')
-  .option('--out <dir>', 'Baseline directory', 'baselines')
+  .description('List all baseline screenshots with metadata')
+  .option('--out <dir>', 'Baseline directory (default: baselines)', 'baselines')
+  .addHelpText('after', `
+Example:
+  $ pnpm gate baseline list`)
   .action(async (options) => {
     try {
       const outDir = path.resolve(process.cwd(), options.out);
@@ -272,9 +300,16 @@ baselineCommand
 
 baselineCommand
   .command('validate')
-  .description('Validate baseline integrity')
-  .option('--out <dir>', 'Baseline directory', 'baselines')
-  .option('--check-hash', 'Verify image hashes match manifest')
+  .description('Validate baseline integrity (structure, hashes, configs)')
+  .option('--out <dir>', 'Baseline directory (default: baselines)', 'baselines')
+  .option('--check-hash', 'Verify PNG file hashes match manifest (slow)')
+  .addHelpText('after', `
+Examples:
+  Quick validation (structure only):
+    $ pnpm gate baseline validate
+
+  Full validation (includes hash verification):
+    $ pnpm gate baseline validate --check-hash`)
   .action(async (options) => {
     const spinner = ora('Validating baselines...').start();
 
@@ -375,10 +410,20 @@ baselineCommand
 baselineCommand
   .command('update')
   .description('Update existing baselines by re-capturing screenshots')
-  .requiredOption('--baseURL <url>', 'Base URL to capture from')
-  .option('--changedOnly', 'Update only screens that have WARN/FAIL status from latest run')
-  .option('--screens <ids>', 'Comma-separated screen IDs to update')
-  .option('--out <dir>', 'Baseline directory', 'baselines')
+  .requiredOption('--baseURL <url>', 'Base URL of running application')
+  .option('--changedOnly', 'Update only screens that failed in latest run')
+  .option('--screens <ids>', 'Comma-separated screen IDs to update (e.g., screen-01,screen-03)')
+  .option('--out <dir>', 'Baseline directory (default: baselines)', 'baselines')
+  .addHelpText('after', `
+Examples:
+  Update all baselines:
+    $ pnpm gate baseline update --baseURL http://localhost:5173
+
+  Update only failed screens from last run:
+    $ pnpm gate baseline update --baseURL http://localhost:5173 --changedOnly
+
+  Update specific screens:
+    $ pnpm gate baseline update --baseURL http://localhost:5173 --screens screen-01,screen-05,screen-10`)
   .action(async (options) => {
     const spinner = ora('Initializing baseline update...').start();
 
@@ -392,8 +437,12 @@ baselineCommand
       try {
         const manifestData = await fs.readFile(manifestPath, 'utf-8');
         manifest = JSON.parse(manifestData);
-      } catch {
+      } catch (error) {
         spinner.fail('No baselines/manifest.json found');
+        console.error(chalk.red('\nError: Cannot find baselines/manifest.json'));
+        console.error(chalk.dim('\nCreate baselines first:'));
+        console.error(chalk.dim('  $ pnpm gate baseline add --from /path/to/screenshots'));
+        console.error(chalk.dim('  $ pnpm gate baseline add --from /path/to/screenshots --meta screens.json'));
         process.exit(1);
       }
 

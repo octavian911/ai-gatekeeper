@@ -17,7 +17,16 @@ import { loadConfig } from '../config.js';
 import { runCommand } from './run.js';
 
 export const gateCommand = new Command('gate')
-  .description('Run visual regression gate');
+  .description('Run visual regression gate and generate evidence packs')
+  .addHelpText('after', `
+Commands:
+  run    Run visual regression gate against baselines
+  pack   Generate evidence pack (ZIP) from run results
+
+Examples:
+  $ pnpm gate run --baseURL http://localhost:5173
+  $ pnpm gate pack
+  $ pnpm gate pack --runId run-1234567890 --out ./evidence.zip`);
 
 gateCommand.addCommand(runCommand);
 
@@ -126,9 +135,19 @@ gateCommand
 
 gateCommand
   .command('pack')
-  .description('Generate evidence pack')
-  .option('--runId <id>', 'Pack specific run (default: latest)')
-  .option('--out <path>', 'Output path (default: evidence.zip in run directory)')
+  .description('Generate evidence pack (ZIP) from run results')
+  .option('--runId <id>', 'Pack specific run ID (default: latest)')
+  .option('--out <path>', 'Output ZIP file path (default: <runDir>/evidence.zip)')
+  .addHelpText('after', `
+Examples:
+  Pack latest run:
+    $ pnpm gate pack
+
+  Pack specific run:
+    $ pnpm gate pack --runId run-1234567890
+
+  Custom output path:
+    $ pnpm gate pack --out ./artifacts/evidence.zip`)
   .action(async (options) => {
     const spinner = ora('Creating evidence pack...').start();
 

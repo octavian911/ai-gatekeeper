@@ -8,8 +8,10 @@ const program = new Command();
 
 program
   .name('ai-gate')
-  .description('AI Output Gate - Visual regression testing for CI')
-  .version('1.0.0');
+  .description('AI Output Gate - Visual regression testing for CI/CD')
+  .version('1.0.0')
+  .option('--verbose', 'Enable verbose logging')
+  .option('--quiet', 'Suppress non-error output');
 
 program.addCommand(baselineCommand);
 program.addCommand(gateCommand);
