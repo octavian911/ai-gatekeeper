@@ -67,10 +67,13 @@ pnpm build
 pnpm gate --help
 
 # Baseline commands
-pnpm gate baseline add           # Capture new baselines
-pnpm gate baseline list          # List all baselines
-pnpm gate baseline validate      # Verify baseline integrity
-pnpm gate baseline update        # Update existing baselines
+pnpm gate baseline add                              # Capture new baselines
+pnpm gate baseline add --from <folder>              # Import from PNG folder
+pnpm gate baseline add --from <folder> --meta screens.json  # Import with metadata
+pnpm gate baseline list                             # List all baselines
+pnpm gate baseline validate                         # Verify baseline integrity
+pnpm gate baseline validate --check-hash            # Verify hashes match manifest
+pnpm gate baseline update                           # Update existing baselines
 
 # Gate commands
 pnpm gate run                    # Run visual regression gate
@@ -92,6 +95,12 @@ pnpm dev  # Runs on http://localhost:5173
 
 # In another terminal: capture baselines
 pnpm gate baseline add
+
+# Or import from existing PNG folder
+pnpm gate baseline add --from /path/to/screenshots
+
+# Validate baselines
+pnpm gate baseline validate
 
 # Run gate
 pnpm gate run
