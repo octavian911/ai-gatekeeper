@@ -7,3 +7,4 @@ export * from './report.js';
 export * from './evidence.js';
 export * from './mask-suggester.js';
 export * from './thresholds.js';
+export * from './deterministic.js';
