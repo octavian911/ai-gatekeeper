@@ -1,5 +1,7 @@
 # AI Output Gate
 
+[![PR Gate](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/pr-gate.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/pr-gate.yml)
+
 **Visual regression gate preventing UI drift in AI-generated code.**
 
 Deterministic screenshot comparison for CI/CD with Playwright + pixel-diff engine. Phase 1 is CLI-based; zero SaaS dependencies.
