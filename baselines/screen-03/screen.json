@@ -1,0 +1,11 @@
+{
+  "name": "Screen 03",
+  "url": "/screen-03",
+  "tags": ["regression-button-padding"],
+  "masks": [
+    {
+      "type": "css",
+      "selector": "[data-testid=\"clock\"]"
+    }
+  ]
+}

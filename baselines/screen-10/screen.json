@@ -1,0 +1,11 @@
+{
+  "name": "Screen 10",
+  "url": "/screen-10",
+  "tags": ["with-banner", "regression-font-size"],
+  "masks": [
+    {
+      "type": "css",
+      "selector": "[data-testid=\"clock\"]"
+    }
+  ]
+}

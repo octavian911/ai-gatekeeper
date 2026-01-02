@@ -1,0 +1,139 @@
+{
+  "baselines": [
+    {
+      "screenId": "screen-01",
+      "name": "Screen 01",
+      "url": "/screen-01",
+      "hash": "placeholder_hash_screen_01_to_be_generated",
+      "tags": ["with-banner"]
+    },
+    {
+      "screenId": "screen-02",
+      "name": "Screen 02",
+      "url": "/screen-02",
+      "hash": "placeholder_hash_screen_02_to_be_generated",
+      "tags": ["with-quote"]
+    },
+    {
+      "screenId": "screen-03",
+      "name": "Screen 03",
+      "url": "/screen-03",
+      "hash": "placeholder_hash_screen_03_to_be_generated",
+      "tags": ["regression-button-padding"]
+    },
+    {
+      "screenId": "screen-04",
+      "name": "Screen 04",
+      "url": "/screen-04",
+      "hash": "placeholder_hash_screen_04_to_be_generated",
+      "tags": ["with-banner"]
+    },
+    {
+      "screenId": "screen-05",
+      "name": "Screen 05",
+      "url": "/screen-05",
+      "hash": "placeholder_hash_screen_05_to_be_generated",
+      "tags": ["with-quote"]
+    },
+    {
+      "screenId": "screen-06",
+      "name": "Screen 06",
+      "url": "/screen-06",
+      "hash": "placeholder_hash_screen_06_to_be_generated"
+    },
+    {
+      "screenId": "screen-07",
+      "name": "Screen 07",
+      "url": "/screen-07",
+      "hash": "placeholder_hash_screen_07_to_be_generated",
+      "tags": ["with-banner", "regression-missing-banner"]
+    },
+    {
+      "screenId": "screen-08",
+      "name": "Screen 08",
+      "url": "/screen-08",
+      "hash": "placeholder_hash_screen_08_to_be_generated",
+      "tags": ["with-quote"]
+    },
+    {
+      "screenId": "screen-09",
+      "name": "Screen 09",
+      "url": "/screen-09",
+      "hash": "placeholder_hash_screen_09_to_be_generated"
+    },
+    {
+      "screenId": "screen-10",
+      "name": "Screen 10",
+      "url": "/screen-10",
+      "hash": "placeholder_hash_screen_10_to_be_generated",
+      "tags": ["with-banner", "regression-font-size"]
+    },
+    {
+      "screenId": "screen-11",
+      "name": "Screen 11",
+      "url": "/screen-11",
+      "hash": "placeholder_hash_screen_11_to_be_generated",
+      "tags": ["with-quote"]
+    },
+    {
+      "screenId": "screen-12",
+      "name": "Screen 12",
+      "url": "/screen-12",
+      "hash": "placeholder_hash_screen_12_to_be_generated"
+    },
+    {
+      "screenId": "screen-13",
+      "name": "Screen 13",
+      "url": "/screen-13",
+      "hash": "placeholder_hash_screen_13_to_be_generated",
+      "tags": ["with-banner"]
+    },
+    {
+      "screenId": "screen-14",
+      "name": "Screen 14",
+      "url": "/screen-14",
+      "hash": "placeholder_hash_screen_14_to_be_generated",
+      "tags": ["with-quote"]
+    },
+    {
+      "screenId": "screen-15",
+      "name": "Screen 15",
+      "url": "/screen-15",
+      "hash": "placeholder_hash_screen_15_to_be_generated"
+    },
+    {
+      "screenId": "screen-16",
+      "name": "Screen 16",
+      "url": "/screen-16",
+      "hash": "placeholder_hash_screen_16_to_be_generated",
+      "tags": ["with-banner"]
+    },
+    {
+      "screenId": "screen-17",
+      "name": "Screen 17",
+      "url": "/screen-17",
+      "hash": "placeholder_hash_screen_17_to_be_generated",
+      "tags": ["with-quote"]
+    },
+    {
+      "screenId": "screen-18",
+      "name": "Screen 18",
+      "url": "/screen-18",
+      "hash": "placeholder_hash_screen_18_to_be_generated"
+    },
+    {
+      "screenId": "screen-19",
+      "name": "Screen 19",
+      "url": "/screen-19",
+      "hash": "placeholder_hash_screen_19_to_be_generated",
+      "tags": ["with-banner"]
+    },
+    {
+      "screenId": "screen-20",
+      "name": "Screen 20",
+      "url": "/screen-20",
+      "hash": "placeholder_hash_screen_20_to_be_generated",
+      "tags": ["with-quote"]
+    }
+  ]
+}

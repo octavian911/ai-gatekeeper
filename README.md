@@ -89,14 +89,35 @@ pnpm gate masks suggest          # Suggest masks for dynamic elements
 
 ### Demo App Setup
 
-```bash
-# Start demo app (20 routes)
-cd examples/demo-app
-pnpm install
-pnpm dev  # Runs on http://localhost:5173
+The demo app includes 20 routes with consistent UI, dynamic elements (clock, quote), and intentional regression scenarios.
 
-# In another terminal: capture baselines
-pnpm gate baseline add
+```bash
+# From repository root
+
+# 1. Install dependencies and build
+pnpm install
+pnpm build
+
+# 2. Create placeholder baseline files (if not already present)
+pnpm setup:baselines
+
+# 3. Generate real baselines (starts app, captures screenshots, stops app)
+pnpm generate:baselines
+
+# 4. Run the harness (starts app, runs gate, stops app)
+pnpm harness:run-once
+
+# Or manually:
+# Start demo app
+pnpm demo:start  # Runs on http://localhost:5173
+
+# In another terminal: run gate
+pnpm gate run --baseURL http://localhost:5173
+
+# Test regression scenarios
+VITE_REGRESSION_CASE=button-padding pnpm demo:start  # Screen 03: increased button padding
+VITE_REGRESSION_CASE=missing-banner pnpm demo:start  # Screen 07: hidden banner
+VITE_REGRESSION_CASE=font-size pnpm demo:start       # Screen 10: changed heading size
 
 # Or import from existing PNG folder
 pnpm gate baseline add --from /path/to/screenshots

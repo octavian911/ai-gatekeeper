@@ -22,40 +22,33 @@ ai-output-gate/
 ├── SCAFFOLD_COMPLETE.md
 ├── VERIFICATION.md
 ├── baselines/
-│   └── .gitkeep
+│   ├── README.md
+│   ├── manifest.json
+│   ├── screen-01/
+│   │   ├── baseline.png
+│   │   └── screen.json
+│   ├── screen-02/
+│   │   ├── baseline.png
+│   │   └── screen.json
+│   └── ... (screen-03 through screen-20)
 ├── examples/
 │   └── demo-app/
 │       ├── ai-gate.config.json
 │       ├── index.html
 │       ├── package.json
 │       ├── postcss.config.js
+│       ├── screens.json
 │       ├── src/
 │       │   ├── App.tsx
 │       │   ├── components/
-│       │   │   └── Layout.tsx
+│       │   │   ├── Banner.tsx
+│       │   │   ├── Clock.tsx
+│       │   │   ├── Layout.tsx
+│       │   │   └── QuoteBlock.tsx
 │       │   ├── index.css
 │       │   ├── main.tsx
 │       │   └── pages/
-│       │       ├── AboutPage.tsx
-│       │       ├── AnalyticsPage.tsx
-│       │       ├── CalendarPage.tsx
-│       │       ├── ChangelogPage.tsx
-│       │       ├── ContactPage.tsx
-│       │       ├── DashboardPage.tsx
-│       │       ├── DocsPage.tsx
-│       │       ├── FilesPage.tsx
-│       │       ├── GalleryPage.tsx
-│       │       ├── HelpPage.tsx
-│       │       ├── HomePage.tsx
-│       │       ├── MessagesPage.tsx
-│       │       ├── NotificationsPage.tsx
-│       │       ├── PricingPage.tsx
-│       │       ├── ProfilePage.tsx
-│       │       ├── ReportsPage.tsx
-│       │       ├── RoadmapPage.tsx
-│       │       ├── SettingsPage.tsx
-│       │       ├── TeamPage.tsx
-│       │       └── UsersPage.tsx
+│       │       └── ScreenPage.tsx
 │       ├── tailwind.config.js
 │       ├── tsconfig.json
 │       ├── tsconfig.node.json
@@ -93,6 +86,10 @@ ai-output-gate/
 ├── playwright.config.ts
 ├── pnpm-workspace.yaml
 ├── scripts/
+│   ├── create-placeholder-baselines.ts
+│   ├── generate-baselines.sh
+│   ├── generate-demo-baselines.ts
+│   ├── generate-screen-configs.ts
 │   └── verify-setup.sh
 ├── tsconfig.base.json
 └── tsconfig.json

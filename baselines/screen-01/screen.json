@@ -1,0 +1,11 @@
+{
+  "name": "Screen 01",
+  "url": "/screen-01",
+  "tags": ["with-banner"],
+  "masks": [
+    {
+      "type": "css",
+      "selector": "[data-testid=\"clock\"]"
+    }
+  ]
+}

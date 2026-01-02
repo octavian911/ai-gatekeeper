@@ -1,0 +1,15 @@
+{
+  "name": "Screen 02",
+  "url": "/screen-02",
+  "tags": ["with-quote"],
+  "masks": [
+    {
+      "type": "css",
+      "selector": "[data-testid=\"clock\"]"
+    },
+    {
+      "type": "css",
+      "selector": "[data-testid=\"quote\"]"
+    }
+  ]
+}

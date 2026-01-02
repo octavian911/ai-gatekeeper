@@ -1,0 +1,11 @@
+{
+  "name": "Screen 07",
+  "url": "/screen-07",
+  "tags": ["with-banner", "regression-missing-banner"],
+  "masks": [
+    {
+      "type": "css",
+      "selector": "[data-testid=\"clock\"]"
+    }
+  ]
+}

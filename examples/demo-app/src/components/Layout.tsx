@@ -1,46 +1,60 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, BarChart3, User, Settings } from 'lucide-react';
+import { Clock } from './Clock';
 
 export function Layout() {
   const location = useLocation();
-  const isRegression = new URLSearchParams(location.search).get('regression') === 'true';
+  const regressionCase = import.meta.env.VITE_REGRESSION_CASE || '';
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-card">
+    <div className="min-h-screen bg-gray-50">
+      <nav className="border-b border-gray-200 bg-white shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-8">
-              <h1 className="text-xl font-bold">
+              <h1 className="text-xl font-bold text-gray-900">
                 AI Output Gate Demo
-                {isRegression && <span className="ml-2 text-xs text-destructive">(Regression Mode)</span>}
+                {regressionCase && (
+                  <span className="ml-2 text-xs text-red-600 font-normal">
+                    (Regression: {regressionCase})
+                  </span>
+                )}
               </h1>
-              <div className="flex gap-4">
-                <NavLink to="/" icon={<Home className="h-4 w-4" />} label="Home" />
-                <NavLink to="/dashboard" icon={<BarChart3 className="h-4 w-4" />} label="Dashboard" />
-                <NavLink to="/profile" icon={<User className="h-4 w-4" />} label="Profile" />
-                <NavLink to="/settings" icon={<Settings className="h-4 w-4" />} label="Settings" />
-              </div>
             </div>
+            <Clock />
           </div>
         </div>
       </nav>
+
+      <div className="border-b border-gray-200 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex gap-2 py-3 overflow-x-auto">
+            {Array.from({ length: 20 }, (_, i) => {
+              const screenNum = i + 1;
+              const path = `/screen-${String(screenNum).padStart(2, '0')}`;
+              const isActive = location.pathname === path || (location.pathname === '/' && screenNum === 1);
+              
+              return (
+                <Link
+                  key={screenNum}
+                  to={path}
+                  data-testid={`nav-screen-${String(screenNum).padStart(2, '0')}`}
+                  className={`px-3 py-1.5 text-sm font-medium rounded transition-colors whitespace-nowrap ${
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Screen {String(screenNum).padStart(2, '0')}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       <main className="container mx-auto px-4 py-8">
         <Outlet />
       </main>
     </div>
-  );
-}
-
-function NavLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-    >
-      {icon}
-      {label}
-    </Link>
   );
 }
