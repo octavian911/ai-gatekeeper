@@ -73,3 +73,39 @@ export interface MaskSuggestion {
   confidence: number;
   examples: string[];
 }
+
+export interface Mask {
+  type: 'css' | 'rect';
+  selector?: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
+export interface ThresholdBand {
+  diffPixelRatio: number;
+  diffPixels: number;
+}
+
+export interface ScreenThresholds {
+  warn: ThresholdBand;
+  fail: ThresholdBand;
+  requireMasks?: boolean;
+}
+
+export interface ViewportConfig {
+  width: number;
+  height: number;
+  deviceScaleFactor: number;
+  browser: 'chromium' | 'firefox' | 'webkit';
+}
+
+export interface ScreenBaseline {
+  name: string;
+  url: string;
+  tags?: string[];
+  viewport?: Partial<ViewportConfig>;
+  thresholds?: Partial<ScreenThresholds>;
+  masks?: Mask[];
+}
