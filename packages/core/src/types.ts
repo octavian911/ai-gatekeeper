@@ -109,3 +109,33 @@ export interface ScreenBaseline {
   thresholds?: Partial<ScreenThresholds>;
   masks?: Mask[];
 }
+
+export type RunStatus = 'PASS' | 'WARN' | 'FAIL';
+
+export interface ScreenResult {
+  screenId: string;
+  name: string;
+  url: string;
+  status: RunStatus;
+  diffPixels: number;
+  diffPixelRatio: number;
+  totalPixels: number;
+  originalityPercent: number;
+  thresholds: ScreenThresholds;
+  error?: string;
+  expectedPath?: string;
+  actualPath?: string;
+  diffPath?: string;
+}
+
+export interface RunSummary {
+  runId: string;
+  timestamp: string;
+  sha?: string;
+  branch?: string;
+  total: number;
+  passed: number;
+  warned: number;
+  failed: number;
+  results: ScreenResult[];
+}

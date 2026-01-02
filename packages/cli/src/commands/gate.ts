@@ -14,9 +14,12 @@ import {
   type ComparisonResult,
 } from '@ai-gate/core';
 import { loadConfig } from '../config.js';
+import { runCommand } from './run.js';
 
 export const gateCommand = new Command('gate')
   .description('Run visual regression gate');
+
+gateCommand.addCommand(runCommand);
 
 gateCommand
   .command('run')
