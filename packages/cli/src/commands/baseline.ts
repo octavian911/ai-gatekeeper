@@ -374,11 +374,195 @@ baselineCommand
 
 baselineCommand
   .command('update')
-  .description('Update existing baselines')
-  .option('-r, --route <route>', 'Update specific route only')
+  .description('Update existing baselines by re-capturing screenshots')
+  .requiredOption('--baseURL <url>', 'Base URL to capture from')
+  .option('--changedOnly', 'Update only screens that have WARN/FAIL status from latest run')
+  .option('--screens <ids>', 'Comma-separated screen IDs to update')
+  .option('--out <dir>', 'Baseline directory', 'baselines')
   .action(async (options) => {
-    await baselineCommand.commands.find((c) => c.name() === 'add')?.parseAsync(
-      ['add', ...(options.route ? ['-r', options.route] : [])],
-      { from: 'user' }
-    );
+    const spinner = ora('Initializing baseline update...').start();
+
+    try {
+      const baseURL = options.baseURL;
+      const changedOnly = options.changedOnly || false;
+      const outDir = path.resolve(process.cwd(), options.out);
+      const manifestPath = path.join(outDir, 'manifest.json');
+
+      let manifest: Manifest;
+      try {
+        const manifestData = await fs.readFile(manifestPath, 'utf-8');
+        manifest = JSON.parse(manifestData);
+      } catch {
+        spinner.fail('No baselines/manifest.json found');
+        process.exit(1);
+      }
+
+      let targetScreenIds: string[];
+
+      if (options.screens) {
+        targetScreenIds = options.screens.split(',').map((s: string) => s.trim());
+      } else if (changedOnly) {
+        targetScreenIds = await determineChangedScreens(process.cwd());
+        if (targetScreenIds.length === 0) {
+          spinner.info('No changed screens found, updating all baselines');
+          targetScreenIds = manifest.baselines.map(b => b.screenId);
+        }
+      } else {
+        targetScreenIds = manifest.baselines.map(b => b.screenId);
+      }
+
+      const targetBaselines = manifest.baselines.filter(b => 
+        targetScreenIds.includes(b.screenId)
+      );
+
+      if (targetBaselines.length === 0) {
+        spinner.fail('No matching screens found to update');
+        process.exit(1);
+      }
+
+      spinner.succeed(`Found ${targetBaselines.length} screen(s) to update`);
+
+      const engine = new ScreenshotEngine();
+      await engine.initialize();
+
+      const updateResults: Array<{
+        screenId: string;
+        success: boolean;
+        oldHash: string;
+        newHash?: string;
+        error?: string;
+      }> = [];
+
+      for (const baseline of targetBaselines) {
+        spinner.start(`Updating ${chalk.cyan(baseline.screenId)}...`);
+
+        const screenDir = path.join(outDir, baseline.screenId);
+        const screenJsonPath = path.join(screenDir, 'screen.json');
+        const baselinePath = path.join(screenDir, 'baseline.png');
+
+        let screenConfig: ScreenBaseline;
+        try {
+          const screenData = await fs.readFile(screenJsonPath, 'utf-8');
+          screenConfig = JSON.parse(screenData);
+        } catch {
+          spinner.fail(`Cannot read screen.json for ${baseline.screenId}`);
+          await engine.close();
+          process.exit(1);
+        }
+
+        const viewport: ViewportConfig = {
+          ...DEFAULT_VIEWPORT,
+          ...screenConfig.viewport,
+        };
+
+        const tempPath = path.join(outDir, '.temp', `${baseline.screenId}.png`);
+        await fs.mkdir(path.dirname(tempPath), { recursive: true });
+
+        const captureResult = await engine.captureScreen(
+          baseURL,
+          screenConfig,
+          viewport,
+          tempPath
+        );
+
+        if (!captureResult.success) {
+          spinner.fail(`Failed to capture ${baseline.screenId}: ${captureResult.error}`);
+          updateResults.push({
+            screenId: baseline.screenId,
+            success: false,
+            oldHash: baseline.hash,
+            error: captureResult.error,
+          });
+          await engine.close();
+          process.exit(1);
+        }
+
+        await fs.copyFile(tempPath, baselinePath);
+        const newHash = await computeHash(baselinePath);
+
+        const manifestIndex = manifest.baselines.findIndex(b => b.screenId === baseline.screenId);
+        if (manifestIndex >= 0) {
+          manifest.baselines[manifestIndex].hash = newHash;
+        }
+
+        updateResults.push({
+          screenId: baseline.screenId,
+          success: true,
+          oldHash: baseline.hash,
+          newHash,
+        });
+
+        spinner.succeed(`Updated ${chalk.cyan(baseline.screenId)} - ${newHash.substring(0, 12)}...`);
+      }
+
+      await engine.close();
+
+      await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+      try {
+        await fs.rm(path.join(outDir, '.temp'), { recursive: true, force: true });
+      } catch {}
+
+      const summary = {
+        timestamp: new Date().toISOString(),
+        baseURL,
+        totalUpdated: updateResults.filter(r => r.success).length,
+        totalFailed: updateResults.filter(r => !r.success).length,
+        results: updateResults,
+      };
+
+      const summaryPath = path.join(outDir, 'baselines-update-summary.json');
+      await fs.writeFile(summaryPath, JSON.stringify(summary, null, 2));
+
+      console.log(chalk.green(`\n✓ Updated ${summary.totalUpdated} baseline(s)`));
+      console.log(`  Summary: ${chalk.cyan(summaryPath)}`);
+
+      if (summary.totalFailed > 0) {
+        console.log(chalk.red(`\n✗ ${summary.totalFailed} baseline(s) failed to update`));
+        process.exit(1);
+      }
+    } catch (error) {
+      spinner.fail('Baseline update failed');
+      console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+      process.exit(1);
+    }
   });
+
+async function determineChangedScreens(cwd: string): Promise<string[]> {
+  try {
+    const runsDir = path.join(cwd, 'runs');
+    const runDirs = await fs.readdir(runsDir);
+    
+    const runDirsWithTime = await Promise.all(
+      runDirs.map(async (dir) => {
+        const fullPath = path.join(runsDir, dir);
+        const stat = await fs.stat(fullPath);
+        return { dir, mtime: stat.mtime.getTime() };
+      })
+    );
+
+    runDirsWithTime.sort((a, b) => b.mtime - a.mtime);
+
+    for (const { dir } of runDirsWithTime) {
+      const summaryPath = path.join(runsDir, dir, 'summary.json');
+      try {
+        const summaryData = await fs.readFile(summaryPath, 'utf-8');
+        const summary = JSON.parse(summaryData) as { results: Array<{ screenId: string; status: string }> };
+        
+        const changedScreenIds = summary.results
+          .filter(r => r.status === 'WARN' || r.status === 'FAIL')
+          .map(r => r.screenId);
+
+        if (changedScreenIds.length > 0) {
+          return changedScreenIds;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return [];
+  } catch {
+    return [];
+  }
+}
