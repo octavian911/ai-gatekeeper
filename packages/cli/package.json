@@ -6,10 +6,12 @@
     "ai-gate": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --build",
     "cli": "node dist/index.js",
     "test": "vitest run",
-    "clean": "rm -rf dist"
+    "test:watch": "vitest",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@ai-gate/core": "workspace:*",

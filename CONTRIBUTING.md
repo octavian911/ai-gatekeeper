@@ -2,105 +2,77 @@
 
 ## Development Setup
 
-```bash
-# Install dependencies
-pnpm install
+1. **Install dependencies:**
+   ```bash
+   pnpm install
+   ```
 
-# Build all packages
-pnpm build
+2. **Build packages:**
+   ```bash
+   pnpm build
+   ```
 
-# Start demo app for testing
-cd examples/demo-app
-pnpm dev
+3. **Run tests:**
+   ```bash
+   pnpm test
+   ```
+
+4. **Start demo app:**
+   ```bash
+   cd examples/demo-app
+   pnpm dev
+   ```
+
+## Project Structure
+
+```
+├── packages/core       # Screenshot comparison engine
+├── packages/cli        # Command-line interface
+├── examples/demo-app   # Test harness with 20 routes
+├── baselines/          # Baseline screenshots (checked in)
+└── runs/               # Test runs (gitignored)
 ```
 
-## Running Tests
+## Code Quality
 
-```bash
-# Unit tests
-pnpm test
+- **Linting:** Run `pnpm lint` before committing
+- **Formatting:** Run `pnpm format` to auto-format code
+- **Type checking:** Run `pnpm typecheck` to verify TypeScript
+- **Tests:** Add tests for new features in `*.test.ts` files
 
-# Visual regression gate (local)
-cd packages/cli
-pnpm cli baseline add
-pnpm cli gate run
-```
+## TypeScript Project References
 
-## Testing Regression Detection
+This monorepo uses TypeScript project references:
+- `packages/cli` references `packages/core`
+- Root `tsconfig.json` orchestrates all packages
+- Run `pnpm typecheck` to verify all references
 
-The demo app supports a `?regression=true` query parameter to inject intentional UI changes:
+## Pull Request Guidelines
 
-```bash
-# Test regression detection
-cd packages/cli
+1. Fork the repo and create a feature branch
+2. Make changes and add tests
+3. Run `pnpm lint && pnpm typecheck && pnpm test`
+4. Submit PR with clear description
+5. CI will run visual gate and post results
 
-# Capture baselines without regressions
-pnpm cli baseline add
+## Commit Messages
 
-# Visit routes with ?regression=true
-# Then run gate (should fail)
-pnpm cli gate run
-```
+Follow conventional commits:
+- `feat: add new baseline command`
+- `fix: correct threshold calculation`
+- `docs: update README quickstart`
+- `chore: update dependencies`
 
-## Architecture
+## Testing
 
-### Core Package (@ai-gate/core)
-
-Contains the visual regression engine:
-
-- `screenshot.ts` - Playwright-based deterministic screenshot capture
-- `comparison.ts` - Pixelmatch-based image diffing
-- `baseline.ts` - Baseline management with hashing
-- `policy.ts` - Threshold evaluation logic
-- `report.ts` - HTML/JSON report generation
-- `evidence.ts` - Evidence pack creation
-
-### CLI Package (@ai-gate/cli)
-
-Command-line interface:
-
-- `baseline` - Manage baseline screenshots
-- `gate` - Run visual regression tests
-- `masks` - Suggest masking strategies
-
-### Demo App (examples/demo-app)
-
-React application with 20 routes for testing:
-
-- Routes support `?regression=true` for intentional changes
-- Uses `data-gate-tag` for threshold overrides
-- Uses `data-gate-mask` for masking dynamic content
-
-## GitHub Actions Workflows
-
-### PR Gate (`.github/workflows/pr-gate.yml`)
-
-Runs on every pull request:
-1. Captures screenshots
-2. Compares against baselines
-3. Uploads artifacts
-4. Posts PR comment with results
-
-### Baseline Approval (`.github/workflows/baseline-approval.yml`)
-
-Triggered by `approve-baseline` label:
-1. Updates baselines
-2. Commits to PR branch
-3. Removes label
-
-### Nightly Flake (`.github/workflows/nightly-flake.yml`)
-
-Runs daily at 2 AM UTC:
-1. Executes 200 test runs
-2. Computes flake rate
-3. Updates metrics and badge
-4. Fails if flake rate > 1%
+- **Unit tests:** `pnpm test` (vitest)
+- **Integration:** Run gate against demo app
+- **Flake testing:** See `.github/workflows/nightly-flake.yml`
 
 ## Release Process
 
-1. Update version in package.json files
-2. Run `pnpm build`
-3. Run `pnpm test`
-4. Run local gate verification
-5. Create git tag
-6. Push to GitHub
+1. Update version in `package.json` files
+2. Update `CHANGELOG.md`
+3. Create git tag: `git tag v1.0.0`
+4. Push tag: `git push --tags`
+5. CI will publish packages

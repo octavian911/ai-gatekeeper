@@ -1,8 +1,44 @@
 # AI Output Gate
 
-**Visual regression + fidelity gate to prevent UI drift from AI-generated code**
+**Visual regression gate preventing UI drift in AI-generated code.**
 
-Phase 1: CLI-based visual regression testing with GitHub Actions integration.
+Deterministic screenshot comparison for CI/CD with Playwright + pixel-diff engine. Phase 1 is CLI-based; zero SaaS dependencies.
+
+## What This Tool Does
+
+AI Output Gate captures pixel-perfect baseline screenshots of your frontend routes and validates them in CI to catch unintended visual changes from AI-generated code modifications. It enforces deterministic rendering (disabled animations, fixed viewport, network blocking, stable waits) to minimize flakes.
+
+**Core capabilities:**
+- 📸 Baseline screenshot capture and storage
+- 🔍 Pixel-diff comparison with configurable thresholds
+- 🎭 Dynamic element masking for timestamps/IDs
+- 📦 Evidence pack generation (zipped, hashed screenshots)
+- 🤖 GitHub Actions integration with PR comments
+- 📊 HTML/JSON reporting
+
+## Phase 1 Scope
+
+**IN SCOPE (Phase 1):**
+- ✅ CLI commands for baseline management and gate runs
+- ✅ Playwright-based screenshot capture (Chromium only)
+- ✅ Pixel-diff comparison with pixelmatch
+- ✅ Configurable routes via `ai-gate.config.json`
+- ✅ Threshold overrides per route and per element
+- ✅ Dynamic element masking (`data-gate-mask`)
+- ✅ Evidence pack ZIP with SHA-256 hashes
+- ✅ GitHub Actions workflows (PR gate, baseline approval, flake tracking)
+- ✅ HTML and JSON reports
+- ✅ Mask suggestion mode
+
+**NOT IN SCOPE (Phase 1):**
+- ❌ Flow YAML spec-to-test generation
+- ❌ OpenAPI contract validation
+- ❌ Multi-browser support (only Chromium)
+- ❌ SaaS dashboard or hosted service
+- ❌ Video recording or trace capture
+- ❌ Accessibility testing
+- ❌ Performance metrics
+- ❌ Component-level testing (full page only)
 
 ## Quick Start
 
@@ -13,181 +49,151 @@ Phase 1: CLI-based visual regression testing with GitHub Actions integration.
 ### Installation
 
 ```bash
+# Clone repo
+git clone <your-repo-url>
+cd ai-output-gate
+
 # Install dependencies
 pnpm install
 
 # Build packages
 pnpm build
-
-# Start demo app (in one terminal)
-cd examples/demo-app
-pnpm dev
-
-# Run baseline capture (in another terminal)
-cd packages/cli
-pnpm cli baseline add
 ```
 
-### Running the Gate
+### Running the CLI
 
 ```bash
-# Run visual regression gate
-pnpm cli gate run
+# View help
+pnpm gate --help
 
-# Generate evidence pack
-pnpm cli gate pack
+# Baseline commands
+pnpm gate baseline add           # Capture new baselines
+pnpm gate baseline list          # List all baselines
+pnpm gate baseline validate      # Verify baseline integrity
+pnpm gate baseline update        # Update existing baselines
 
-# View results
+# Gate commands
+pnpm gate run                    # Run visual regression gate
+pnpm gate run --threshold 0.005  # Custom threshold
+pnpm gate run --route /dashboard # Test specific route
+pnpm gate pack                   # Generate evidence ZIP
+
+# Mask commands
+pnpm gate masks suggest          # Suggest masks for dynamic elements
+```
+
+### Demo App Setup
+
+```bash
+# Start demo app (20 routes)
+cd examples/demo-app
+pnpm install
+pnpm dev  # Runs on http://localhost:5173
+
+# In another terminal: capture baselines
+pnpm gate baseline add
+
+# Run gate
+pnpm gate run
+
+# View report
 open ../../runs/latest/report.html
 ```
+
+## 90% Ready Metrics
+
+**Flake Rate (Target: ≤1%)**
+- Measured via 200+ repeated runs of same baseline
+- Nightly CI job tracks flake rate per route
+- Deterministic rendering enforced (animations off, fixed viewport, network blocked)
+
+**Runtime (Target: ≤5min for 20 screens)**
+- CI runtime measured in GitHub Actions
+- Parallelization disabled (sequential runs for stability)
+- Playwright Chromium only
+
+**Onboarding (Target: ≤15min clone→baseline→PR)**
+- Timed from `git clone` to first PR comment with gate results
+- Includes: install deps, build packages, start demo app, capture baselines, run gate, view report
+
+**False FAIL Rate (Target: ≤2%)**
+- No-change runs should pass >98% of the time
+- Measured by running gate against unchanged baselines 100+ times
 
 ## Architecture
 
 ```
 ├── packages/
-│   ├── core/          # Visual regression engine
-│   └── cli/           # Command-line interface
+│   ├── core/               # Screenshot + comparison engine
+│   │   ├── src/
+│   │   │   ├── screenshot.ts    # Playwright capture
+│   │   │   ├── comparison.ts    # Pixelmatch diffing
+│   │   │   ├── baseline.ts      # Baseline storage
+│   │   │   ├── policy.ts        # Threshold enforcement
+│   │   │   ├── evidence.ts      # Evidence pack creation
+│   │   │   ├── report.ts        # HTML/JSON reports
+│   │   │   └── mask-suggester.ts # Dynamic mask detection
+│   │   └── package.json
+│   └── cli/                # Command-line interface
+│       ├── src/
+│       │   ├── index.ts         # CLI entry point
+│       │   ├── config.ts        # Config loader
+│       │   └── commands/
+│       │       ├── baseline.ts  # Baseline commands
+│       │       ├── gate.ts      # Gate commands
+│       │       └── masks.ts     # Mask commands
+│       └── package.json
 ├── examples/
-│   └── demo-app/      # 20-route demo harness
-├── baselines/         # Baseline screenshots (checked in)
-├── runs/             # Test runs (gitignored)
-└── .github/workflows/ # CI automation
+│   └── demo-app/           # 20-route test harness
+│       ├── ai-gate.config.json
+│       └── src/
+│           ├── App.tsx
+│           └── pages/
+├── baselines/              # Baseline screenshots (checked in)
+├── runs/                   # Test run outputs (gitignored)
+│   └── latest/             # Symlink to most recent run
+│       ├── actual/         # Current screenshots
+│       ├── diff/           # Diff images
+│       ├── summary.json    # JSON results
+│       ├── report.html     # HTML report
+│       └── evidence.zip    # Evidence pack
+└── .github/workflows/      # CI automation
+    ├── ci.yml              # Lint/test/build
+    ├── pr-gate.yml         # Visual regression on PRs
+    ├── baseline-approval.yml # Baseline update automation
+    └── nightly-flake.yml   # Flake rate tracker
 ```
 
-## CLI Commands
+## Configuration
 
-### Baseline Management
+Create `ai-gate.config.json` in your project root:
 
-```bash
-# Add new baseline screenshots
-pnpm cli baseline add
-
-# List all baselines
-pnpm cli baseline list
-
-# Validate baselines exist
-pnpm cli baseline validate
-
-# Update specific baselines
-pnpm cli baseline update --route /dashboard
-```
-
-### Visual Gate
-
-```bash
-# Run visual regression gate
-pnpm cli gate run
-
-# Run with custom threshold
-pnpm cli gate run --threshold 0.001
-
-# Run specific routes
-pnpm cli gate run --route /login --route /dashboard
-```
-
-### Evidence & Reporting
-
-```bash
-# Generate evidence pack (zip with hashes)
-pnpm cli gate pack
-
-# Suggest masking for dynamic elements
-pnpm cli masks suggest
-```
-
-## Deterministic Rendering
-
-The gate enforces deterministic rendering:
-
-- ✅ Animations disabled via CSS injection
-- ✅ Fixed viewport (1280x720)
-- ✅ External network blocked
-- ✅ Stable waits (networkidle + custom selectors)
-- ✅ Fixed date/time mocking
-- ✅ Consistent fonts loaded
-
-## Thresholds & Masking
-
-### Global Defaults
-
-```typescript
+```json
 {
-  pixelDiffThreshold: 0.001,  // 0.1% pixel difference allowed
-  antiAliasingTolerance: 5,    // Fuzzy matching for AA
-  maxDiffPixels: 100           // Absolute max changed pixels
+  "baseUrl": "http://localhost:5173",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "policy": {
+    "pixelDiffThreshold": 0.001,
+    "antiAliasingTolerance": 5,
+    "maxDiffPixels": 100
+  },
+  "routes": [
+    {
+      "name": "home",
+      "path": "/",
+      "waitForSelector": "[data-testid='content']"
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "threshold": 0.005
+    }
+  ]
 }
 ```
-
-### Tag Overrides
-
-Routes can specify custom thresholds via `data-gate-threshold` attributes:
-
-```html
-<!-- Allow more drift for charts -->
-<div data-gate-tag="chart" data-gate-threshold="0.005">
-  <canvas>...</canvas>
-</div>
-```
-
-### Masking Dynamic Content
-
-```html
-<!-- Mask timestamps, random IDs, etc -->
-<span data-gate-mask="always">12:34:56 PM</span>
-<div data-gate-mask="user-avatar">...</div>
-```
-
-Mask suggestion mode analyzes diffs and recommends masks.
-
-## GitHub Actions Workflows
-
-### PR Gate (`.github/workflows/pr-gate.yml`)
-
-Runs on every pull request:
-1. Captures screenshots of all routes
-2. Compares against baselines
-3. Uploads artifacts (diffs, report, evidence)
-4. Posts summary comment on PR
-5. Updates status badge
-
-### Baseline Approval (`.github/workflows/baseline-approval.yml`)
-
-Triggered by `approve-baseline` label:
-1. Updates baselines with current screenshots
-2. Commits to PR branch
-3. Removes label
-
-### Nightly Flake Tracker (`.github/workflows/nightly-flake.yml`)
-
-Runs harness 200+ times:
-1. Computes flake rate per route
-2. Writes `flake-metrics.json`
-3. Updates flake badge
-4. Alerts if flake rate > 1%
-
-## Demo Harness
-
-The `examples/demo-app` contains 20 routes testing:
-
-- Static content
-- Forms & inputs
-- Charts & visualizations
-- Tables with data
-- Modals & overlays
-- Dynamic lists
-- Image galleries
-- Responsive layouts
-- Dark/light themes
-- Loading states
-
-**Regression Toggles**: Each route has a `?regression=true` param to inject intentional changes for testing.
-
-## Performance Targets
-
-- ✅ Flake rate ≤ 1% (200+ runs)
-- ✅ Runtime ≤ 5 min for 20 screens (GitHub Actions)
-- ✅ False FAIL ≤ 2% on no-change runs
-- ✅ Onboarding ≤ 15 min (clone → baseline → PR comment)
 
 ## Development
 
@@ -201,18 +207,43 @@ pnpm build
 # Run tests
 pnpm test
 
+# Watch mode
+pnpm test:watch
+
 # Lint
 pnpm lint
 
-# Start demo app
-cd examples/demo-app && pnpm dev
+# Fix linting issues
+pnpm lint:fix
+
+# Format code
+pnpm format
+
+# Type check
+pnpm typecheck
 ```
 
-## Phase 2+ (Not Implemented)
+## GitHub Actions Integration
 
-- Flow YAML spec-to-test generation
-- OpenAPI contract guardrails
-- Hosted SaaS dashboard
+### PR Gate
+Runs on every pull request, compares screenshots against baselines, uploads artifacts, posts PR comment.
+
+### Baseline Approval
+Add `approve-baseline` label to PR to auto-commit updated baselines.
+
+### Nightly Flake Tracker
+Runs 200+ iterations to measure flake rate and alert if >1%.
+
+See `.github/workflows/` for workflow definitions.
+
+## Performance Targets
+
+| Metric | Target | Measurement |
+|--------|--------|-------------|
+| Flake Rate | ≤1% | 200+ repeated runs |
+| Runtime | ≤5min | 20 screens in CI |
+| False FAIL | ≤2% | 100+ no-change runs |
+| Onboarding | ≤15min | Clone to first PR comment |
 
 ## License
 

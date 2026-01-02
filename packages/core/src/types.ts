@@ -3,7 +3,7 @@ export interface GateConfig {
   routes: RouteConfig[];
   policy: PolicyConfig;
   viewport: { width: number; height: number };
-  timeout: number;
+  timeout?: number;
 }
 
 export interface RouteConfig {
