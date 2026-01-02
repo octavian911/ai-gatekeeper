@@ -1,8 +1,16 @@
 # AI Output Gate
 
+**Visual regression gate preventing UI drift in AI-generated code.**
+
+## Readiness Dashboard
+
+[![Flake Rate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/flake-metrics.json)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/nightly-flake.yml)
 [![PR Gate](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/pr-gate.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/pr-gate.yml)
 
-**Visual regression gate preventing UI drift in AI-generated code.**
+| Metric | Target | Status |
+|--------|--------|--------|
+| Flake Rate | ≤1% | See badge above (250 samples) |
+| Runtime (20 screens) | ≤5min | See [latest workflow run](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/nightly-flake.yml) |
 
 Deterministic screenshot comparison for CI/CD with Playwright + pixel-diff engine. Phase 1 is CLI-based; zero SaaS dependencies.
 
@@ -284,7 +292,10 @@ Runs on every pull request, compares screenshots against baselines, uploads arti
 Add `approve-baseline` label to PR to auto-commit updated baselines.
 
 ### Nightly Flake Tracker
-Runs 200+ iterations to measure flake rate and alert if >1%.
+Runs 250 iterations to measure flake rate. Updates `flake-metrics.json` and the flake rate badge.
+
+**Required permissions:**
+- `contents: write` - to commit flake-metrics.json back to main branch
 
 See `.github/workflows/` for workflow definitions.
 
