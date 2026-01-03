@@ -241,47 +241,62 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
               <div className="mt-4 bg-card border-2 border-border-strong rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-primary mb-3">Detected Changes</h4>
                 <div className="space-y-2">
-                  {screen.changes.map((change) => (
-                    <div
-                      key={change.id}
-                      className="flex items-start gap-3 p-2 rounded bg-accent/30"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            {change.changeType}
-                          </Badge>
-                          {change.metadata?.severity && (
-                            <Badge
-                              variant="outline"
-                              className={
-                                change.metadata.severity === "high"
-                                  ? "bg-red-500/10 text-red-600 border-red-500/30"
-                                  : change.metadata.severity === "medium"
-                                  ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
-                                  : "bg-blue-500/10 text-blue-600 border-blue-500/30"
-                              }
-                            >
-                              {change.metadata.severity}
+                  {screen.changes.map((change) => {
+                    const getImpactDescription = () => {
+                      if (change.changeType === "visual") {
+                        return "Visual appearance changed - users will see different styling or layout";
+                      } else if (change.changeType === "content") {
+                        return "Text or content modified - wording or messaging is different";
+                      } else if (change.changeType === "layout") {
+                        return "Component positioning changed - elements moved or resized";
+                      } else if (change.changeType === "color") {
+                        return "Color scheme updated - different visual appearance";
+                      }
+                      return change.description;
+                    };
+
+                    return (
+                      <div
+                        key={change.id}
+                        className="flex items-start gap-3 p-2 rounded bg-accent/30"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {change.changeType}
                             </Badge>
+                            {change.metadata?.severity && (
+                              <Badge
+                                variant="outline"
+                                className={
+                                  change.metadata.severity === "high"
+                                    ? "bg-red-500/10 text-red-600 border-red-500/30"
+                                    : change.metadata.severity === "medium"
+                                    ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
+                                    : "bg-blue-500/10 text-blue-600 border-blue-500/30"
+                                }
+                              >
+                                {change.metadata.severity} impact
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-primary mt-1">{getImpactDescription()}</p>
+                          {change.selector && showAdvanced && (
+                            <code className="text-xs text-secondary font-mono block mt-1">
+                              {change.selector}
+                            </code>
                           )}
                         </div>
-                        <p className="text-sm text-primary mt-1">{change.description}</p>
-                        {change.selector && (
-                          <code className="text-xs text-secondary font-mono">
-                            {change.selector}
-                          </code>
-                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {screen.suggestedMasks! > 0 && (
               <div className="mt-4 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg p-4">
-                <div className="flex items-start gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <div className="text-sm font-semibold text-yellow-700 mb-1">
                       💡 Mask Suggestion: Avoid Approving
@@ -293,6 +308,17 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                       <strong>Recommended:</strong> Add mask rules to ignore these changing areas instead of approving this diff.
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-yellow-500/50 text-yellow-700 hover:bg-yellow-500/20"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open('/settings', '_blank');
+                    }}
+                  >
+                    Apply Mask
+                  </Button>
                 </div>
               </div>
             )}

@@ -224,15 +224,19 @@ export function ReviewsPage() {
                               : "bg-green-500/10 text-green-600 border-green-500/30"
                           }
                         >
-                          Worst Screen
+                          Biggest Change
                         </Badge>
                         <span className="text-sm font-semibold text-primary">
                           {review.worstScreenName}
                         </span>
                       </div>
                       {review.worstScreenOriginality !== undefined && (
-                        <span className="text-sm font-mono font-semibold text-secondary">
-                          {review.worstScreenOriginality.toFixed(1)}% similarity
+                        <span className="text-sm font-semibold text-secondary">
+                          {review.worstScreenStatus === "failed" 
+                            ? "Major visual differences"
+                            : review.worstScreenStatus === "warned"
+                            ? "Minor differences detected"
+                            : "Minimal differences"}
                         </span>
                       )}
                     </div>
