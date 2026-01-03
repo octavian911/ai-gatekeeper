@@ -301,21 +301,21 @@ export function BaselinesPage() {
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Validated</span>
+            <span className="text-sm text-white">Validated</span>
             <CheckCircle2 className="size-4 text-green-500" />
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.validated}</p>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Invalid</span>
+            <span className="text-sm text-white">Invalid</span>
             <AlertCircle className="size-4 text-yellow-500" />
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.invalid}</p>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Missing</span>
+            <span className="text-sm text-white">Missing</span>
             <XCircle className="size-4 text-red-500" />
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.missing}</p>
