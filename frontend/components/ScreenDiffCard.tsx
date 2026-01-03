@@ -59,14 +59,18 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
   };
 
   const getVerdict = () => {
-    const drift = 100 - screen.originalityPercent;
     if (screen.status === "FAIL") {
-      return `This screen drifted ${drift.toFixed(1)}% beyond baseline tolerance`;
+      return "This screen changed beyond acceptable limits - review required";
     } else if (screen.status === "WARN") {
-      return `Minor drift detected (${drift.toFixed(1)}%) - within warning threshold`;
+      return "Minor changes detected - review recommended but likely safe";
     } else {
-      return `Screen matches baseline within acceptable limits`;
+      return "Screen matches baseline within acceptable limits";
     }
+  };
+
+  const getAdvancedVerdict = () => {
+    const drift = 100 - screen.originalityPercent;
+    return `Drift: ${drift.toFixed(1)}% (${screen.originalityPercent.toFixed(1)}% similarity to baseline)`;
   };
 
   return (
@@ -183,6 +187,7 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                 </div>
                 <div className="text-xs text-blue-600 mt-1 space-y-1">
                   <div>Similarity: {screen.originalityPercent.toFixed(1)}%</div>
+                  <div>Drift: {(100 - screen.originalityPercent).toFixed(1)}%</div>
                   {screen.volatileRegionsMasked! > 0 && (
                     <div>{screen.volatileRegionsMasked} volatile region{screen.volatileRegionsMasked! > 1 ? 's' : ''} masked from comparison</div>
                   )}

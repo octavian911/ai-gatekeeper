@@ -207,35 +207,30 @@ export function ReviewsPage() {
                   </div>
                   <div className="bg-red-500/10 rounded-lg p-3">
                     <p className="text-xs text-red-600 mb-1">Screens Changed</p>
-                    <p className="text-xl font-bold text-red-600">{review.failedScreens}</p>
+                    <p className="text-xl font-bold text-red-600">{review.failedScreens + review.warnedScreens}</p>
+                    {review.failedScreens > 0 && review.warnedScreens > 0 && (
+                      <p className="text-[10px] text-red-500 mt-0.5">{review.failedScreens} failed • {review.warnedScreens} warned</p>
+                    )}
                   </div>
                 </div>
 
                 {review.worstScreenName && (
                   <div className="mt-3 bg-accent/50 border-2 border-border-strong rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          className={
-                            review.worstScreenStatus === "failed" 
-                              ? "bg-red-500/10 text-red-600 border-red-500/30"
-                              : review.worstScreenStatus === "warned"
-                              ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
-                              : "bg-green-500/10 text-green-600 border-green-500/30"
-                          }
-                        >
-                          Biggest Change
-                        </Badge>
-                        <span className="text-sm font-semibold text-primary">
-                          {review.worstScreenName}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-secondary">Worst:</span>
+                      <span className="text-sm font-semibold text-primary">
+                        {review.worstScreenName}
+                      </span>
                       {review.worstScreenOriginality !== undefined && (
-                        <span className="text-sm font-semibold text-secondary">
-                          {review.worstScreenOriginality.toFixed(1)}% similar to baseline
-                        </span>
+                        <>
+                          <span className="text-xs text-secondary">•</span>
+                          <span className="text-sm font-semibold text-secondary">
+                            {review.worstScreenOriginality.toFixed(1)}%
+                          </span>
+                        </>
                       )}
                     </div>
+                    <div className="text-[10px] text-secondary mt-1">Lowest similarity in this run</div>
                   </div>
                 )}
               </div>
