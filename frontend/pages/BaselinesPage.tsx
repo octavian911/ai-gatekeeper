@@ -277,22 +277,30 @@ export function BaselinesPage() {
     setExporting(true);
     try {
       const response = await backend.baselines.exportZipFs();
-      const blob = new Blob(
-        [Uint8Array.from(atob(response.zipData), (c) => c.charCodeAt(0))],
-        { type: "application/zip" }
-      );
+      
+      const binaryString = atob(response.zipData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const blob = new Blob([bytes], { type: "application/zip" });
       const url = URL.createObjectURL(blob);
+      
       const link = document.createElement("a");
       link.href = url;
       link.download = response.filename;
       link.style.display = "none";
-      link.setAttribute("target", "_blank");
+      
       document.body.appendChild(link);
+      
       link.click();
+      
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-      }, 100);
+      }, 250);
+      
       showToast("Baselines exported successfully", "success");
     } catch (error) {
       console.error("Export failed:", error);
