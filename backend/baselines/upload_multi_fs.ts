@@ -25,6 +25,7 @@ export interface UploadedBaseline {
   screenId: string;
   hash: string;
   size: number;
+  status: "created" | "updated" | "no_change";
 }
 
 export interface UploadMultiResponse {
@@ -53,7 +54,9 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
     const uploaded: UploadedBaseline[] = [];
     const errors: Array<{ screenId: string; message: string }> = [];
 
-    const existingIds = new Set(manifest.baselines.map((b) => b.screenId));
+    const existingBaselines = new Map(
+      manifest.baselines.map((b) => [b.screenId, b])
+    );
     const incomingIds = new Set<string>();
 
     for (const input of req.baselines) {
@@ -85,9 +88,17 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
           continue;
         }
 
-        await writeBaselineImage(input.screenId, imageBuffer);
-
         const hash = await getImageHash(imageBuffer);
+        const existingBaseline = existingBaselines.get(input.screenId);
+        
+        let uploadStatus: "created" | "updated" | "no_change";
+        
+        if (existingBaseline && existingBaseline.hash === hash) {
+          uploadStatus = "no_change";
+        } else {
+          await writeBaselineImage(input.screenId, imageBuffer);
+          uploadStatus = existingBaseline ? "updated" : "created";
+        }
 
         const hasOverrides =
           input.tags && input.tags.length > 0;
@@ -115,7 +126,7 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
           await writeScreenConfig(input.screenId, screenConfig);
         }
 
-        if (!existingIds.has(input.screenId)) {
+        if (!existingBaseline) {
           manifest.baselines.push({
             screenId: input.screenId,
             name: input.name,
@@ -124,19 +135,17 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
             tags: input.tags,
           });
         } else {
-          const existing = manifest.baselines.find((b) => b.screenId === input.screenId);
-          if (existing) {
-            existing.name = input.name;
-            existing.url = input.route;
-            existing.hash = hash;
-            existing.tags = input.tags;
-          }
+          existingBaseline.name = input.name;
+          existingBaseline.url = input.route;
+          existingBaseline.hash = hash;
+          existingBaseline.tags = input.tags;
         }
 
         uploaded.push({
           screenId: input.screenId,
           hash,
           size: imageBuffer.length,
+          status: uploadStatus,
         });
       } catch (error) {
         errors.push({

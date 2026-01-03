@@ -201,10 +201,21 @@ export function BaselinesPage() {
     try {
       const response = await backend.baselines.uploadMultiFs({ baselines: baselinesData });
       
+      const created = response.uploaded.filter(u => u.status === "created").length;
+      const updated = response.uploaded.filter(u => u.status === "updated").length;
+      const noChange = response.uploaded.filter(u => u.status === "no_change").length;
+      
       if (response.errors.length > 0) {
         showToast(`Uploaded ${response.uploaded.length} baseline(s) with ${response.errors.length} error(s)`, "warning");
+      } else if (noChange > 0 && created === 0 && updated === 0) {
+        const screenIds = response.uploaded.map(u => u.screenId).join(", ");
+        showToast(`No change: ${screenIds} (identical)`, "success");
       } else {
-        showToast(`Successfully uploaded ${response.uploaded.length} baseline(s)`, "success");
+        const messages: string[] = [];
+        if (created > 0) messages.push(`${created} created`);
+        if (updated > 0) messages.push(`${updated} updated`);
+        if (noChange > 0) messages.push(`${noChange} unchanged`);
+        showToast(`Baselines: ${messages.join(", ")}`, "success");
       }
       
       await fetchBaselines();
@@ -230,13 +241,26 @@ export function BaselinesPage() {
         importPolicy,
       });
 
+      const created = response.imported.filter(i => i.status === "created").length;
+      const updated = response.imported.filter(i => i.status === "updated").length;
+      const noChange = response.imported.filter(i => i.status === "no_change").length;
+
       if (response.errors.length > 0) {
         showToast(
           `Imported ${response.imported.length} baseline(s) with ${response.errors.length} error(s)`,
           "warning"
         );
+      } else if (response.skipped.length > 0) {
+        showToast(
+          `Imported ${response.imported.length} baseline(s), skipped ${response.skipped.length} existing`,
+          "warning"
+        );
       } else {
-        showToast(`Successfully imported ${response.imported.length} baseline(s)`, "success");
+        const messages: string[] = [];
+        if (created > 0) messages.push(`${created} created`);
+        if (updated > 0) messages.push(`${updated} updated`);
+        if (noChange > 0) messages.push(`${noChange} unchanged`);
+        showToast(`Baselines: ${messages.join(", ")}`, "success");
       }
 
       await fetchBaselines();

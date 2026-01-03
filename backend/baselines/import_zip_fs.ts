@@ -13,7 +13,7 @@ import {
 
 export interface ImportZipRequest {
   zipData: string;
-  overwriteExisting: boolean;
+  overwriteExisting?: boolean;
   importPolicy: boolean;
 }
 
@@ -21,7 +21,7 @@ export interface ImportedBaseline {
   screenId: string;
   hash: string;
   size: number;
-  status: string;
+  status: "created" | "updated" | "no_change" | "validated" | "invalid";
 }
 
 export interface ImportZipResponse {
@@ -155,7 +155,7 @@ export const importZipFs = api<ImportZipRequest, ImportZipResponse>(
         continue;
       }
 
-      if (existingIds.has(screenId) && !req.overwriteExisting) {
+      if (existingIds.has(screenId) && req.overwriteExisting === false) {
         skipped.push(screenId);
         continue;
       }
@@ -169,9 +169,17 @@ export const importZipFs = api<ImportZipRequest, ImportZipResponse>(
           continue;
         }
 
-        await writeBaselineImage(screenId, imageBuffer);
-
         const hash = await getImageHash(imageBuffer);
+        const existingBaseline = currentManifest.baselines.find((b) => b.screenId === screenId);
+        
+        let importStatus: "created" | "updated" | "no_change";
+        
+        if (existingBaseline && existingBaseline.hash === hash) {
+          importStatus = "no_change";
+        } else {
+          await writeBaselineImage(screenId, imageBuffer);
+          importStatus = existingBaseline ? "updated" : "created";
+        }
 
         const screenConfig = screenConfigs.get(screenId);
         if (screenConfig) {
@@ -180,13 +188,8 @@ export const importZipFs = api<ImportZipRequest, ImportZipResponse>(
 
         const tags = screenConfig?.tags || baselineEntry.tags || [];
         const masks = screenConfig?.masks || [];
-        let status = "validated";
 
-        if (tags.includes("noisy") && masks.length === 0) {
-          status = "invalid";
-        }
-
-        if (!existingIds.has(screenId)) {
+        if (!existingBaseline) {
           currentManifest.baselines.push({
             screenId,
             name: baselineEntry.name || screenId,
@@ -195,20 +198,17 @@ export const importZipFs = api<ImportZipRequest, ImportZipResponse>(
             tags,
           });
         } else {
-          const existing = currentManifest.baselines.find((b) => b.screenId === screenId);
-          if (existing) {
-            existing.name = baselineEntry.name || existing.name;
-            existing.url = baselineEntry.url || baselineEntry.route || existing.url;
-            existing.hash = hash;
-            existing.tags = tags;
-          }
+          existingBaseline.name = baselineEntry.name || existingBaseline.name;
+          existingBaseline.url = baselineEntry.url || baselineEntry.route || existingBaseline.url;
+          existingBaseline.hash = hash;
+          existingBaseline.tags = tags;
         }
 
         imported.push({
           screenId,
           hash,
           size: imageBuffer.length,
-          status,
+          status: importStatus,
         });
       } catch (error) {
         errors.push({
