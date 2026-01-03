@@ -207,7 +207,7 @@ export function ReviewsPage() {
                   </div>
                   <div className="bg-red-500/10 rounded-lg p-3">
                     <p className="text-xs text-red-600 mb-1">Screens Changed</p>
-                    <p className="text-xl font-bold text-red-600">{review.failedScreens + review.warnedScreens}</p>
+                    <p className="text-xl font-bold text-red-600">{review.failedScreens}</p>
                   </div>
                 </div>
 
@@ -232,12 +232,7 @@ export function ReviewsPage() {
                       </div>
                       {review.worstScreenOriginality !== undefined && (
                         <span className="text-sm font-semibold text-secondary">
-                          {review.worstScreenOriginality.toFixed(1)}% similarity{" "}
-                          {review.worstScreenStatus === "failed" 
-                            ? "(major change)"
-                            : review.worstScreenStatus === "warned"
-                            ? "(minor change)"
-                            : ""}
+                          {review.worstScreenOriginality.toFixed(1)}% similar to baseline
                         </span>
                       )}
                     </div>

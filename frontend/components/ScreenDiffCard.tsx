@@ -91,9 +91,11 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
           </div>
         </div>
 
-        <div className="mt-2 text-sm font-medium text-primary italic">
-          {getVerdict()}
-        </div>
+        {!expanded && (
+          <div className="mt-2 text-sm font-medium text-primary italic">
+            {getVerdict()}
+          </div>
+        )}
 
         {screen.changes.length > 0 && (
           <div className="mt-1 text-sm text-secondary">
