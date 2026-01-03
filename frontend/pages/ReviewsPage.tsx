@@ -206,8 +206,8 @@ export function ReviewsPage() {
                     <p className="text-xl font-bold text-yellow-600">{review.warnedScreens}</p>
                   </div>
                   <div className="bg-red-500/10 rounded-lg p-3">
-                    <p className="text-xs text-red-600 mb-1">Failed</p>
-                    <p className="text-xl font-bold text-red-600">{review.failedScreens}</p>
+                    <p className="text-xs text-red-600 mb-1">{review.failedScreens + review.warnedScreens > 0 ? 'Screens Changed' : 'Failed'}</p>
+                    <p className="text-xl font-bold text-red-600">{review.failedScreens + review.warnedScreens}</p>
                   </div>
                 </div>
 

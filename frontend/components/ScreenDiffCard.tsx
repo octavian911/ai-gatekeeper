@@ -12,6 +12,7 @@ interface ScreenDiffCardProps {
 export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
   const [expanded, setExpanded] = useState(screen.status === "FAIL");
   const [activeView, setActiveView] = useState<"diff" | "side-by-side" | "overlay">("diff");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const getStatusBadge = () => {
     switch (screen.status) {
@@ -57,6 +58,17 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
     return null;
   };
 
+  const getVerdict = () => {
+    const drift = 100 - screen.originalityPercent;
+    if (screen.status === "FAIL") {
+      return `This screen drifted ${drift.toFixed(1)}% beyond baseline tolerance`;
+    } else if (screen.status === "WARN") {
+      return `Minor drift detected (${drift.toFixed(1)}%) - within warning threshold`;
+    } else {
+      return `Screen matches baseline within acceptable limits`;
+    }
+  };
+
   return (
     <div className="bg-card border-2 border-border-strong rounded-lg overflow-hidden">
       <div
@@ -82,8 +94,12 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
           </div>
         </div>
 
+        <div className="mt-2 text-sm font-medium text-primary italic">
+          {getVerdict()}
+        </div>
+
         {screen.changes.length > 0 && (
-          <div className="mt-2 text-sm text-secondary">
+          <div className="mt-1 text-sm text-secondary">
             {screen.changes.length} change{screen.changes.length > 1 ? "s" : ""} detected
           </div>
         )}
@@ -126,11 +142,6 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                     <span>Unknown stability</span>
                   )}
                 </div>
-                {screen.volatileRegionsMasked! > 0 && (
-                  <div className="text-xs text-secondary mt-1">
-                    {screen.volatileRegionsMasked} regions masked
-                  </div>
-                )}
               </div>
 
               <div className="bg-card border-2 border-border-strong rounded-lg p-3">
@@ -150,6 +161,31 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                   )}
                 </div>
               </div>
+            </div>
+
+            {showAdvanced && screen.volatileRegionsMasked! > 0 && (
+              <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-3 mb-4">
+                <div className="text-sm font-semibold text-blue-700">
+                  ℹ️ Technical Details
+                </div>
+                <div className="text-xs text-blue-600 mt-1">
+                  {screen.volatileRegionsMasked} volatile region{screen.volatileRegionsMasked! > 1 ? 's' : ''} masked from comparison
+                </div>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowAdvanced(!showAdvanced);
+                }}
+                className="text-xs text-secondary hover:text-primary"
+              >
+                {showAdvanced ? '▼ Hide' : '▶ Show'} Advanced Details
+              </Button>
             </div>
 
             {activeView === "diff" && (
@@ -244,13 +280,19 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
             )}
 
             {screen.suggestedMasks! > 0 && (
-              <div className="mt-4 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg p-3">
-                <div className="text-sm font-semibold text-yellow-700 mb-1">
-                  💡 Mask Suggestion
-                </div>
-                <div className="text-sm text-yellow-700">
-                  {screen.suggestedMasks} volatile region{screen.suggestedMasks! > 1 ? "s" : ""} detected. 
-                  Consider masking to reduce false positives.
+              <div className="mt-4 bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-yellow-700 mb-1">
+                      💡 Mask Suggestion: Avoid Approving
+                    </div>
+                    <div className="text-sm text-yellow-700 mb-2">
+                      {screen.suggestedMasks} volatile region{screen.suggestedMasks! > 1 ? "s" : ""} detected (e.g., timestamps, random IDs, live data).
+                    </div>
+                    <div className="text-xs text-yellow-600 bg-yellow-500/10 rounded p-2 mb-2">
+                      <strong>Recommended:</strong> Add mask rules to ignore these changing areas instead of approving this diff.
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

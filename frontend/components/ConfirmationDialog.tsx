@@ -57,9 +57,17 @@ export function ConfirmationDialog({
             </DialogTitle>
           </div>
           <DialogDescription>
-            {action === "approve"
-              ? "This will update the baseline so future tests use this new UI"
-              : "This will block the changes and mark the test run as rejected"}
+            {action === "approve" ? (
+              <div className="bg-orange-500/10 border-2 border-orange-500/40 rounded-lg p-3 mt-2">
+                <p className="font-semibold text-orange-700">⚠️ This will permanently replace the official baseline images.
+                </p>
+                <p className="text-sm text-orange-600 mt-1">
+                  All future visual regression tests will use these new screenshots as the reference.
+                </p>
+              </div>
+            ) : (
+              "This will block the changes and mark the test run as rejected"
+            )}
           </DialogDescription>
         </DialogHeader>
 

@@ -225,10 +225,9 @@ export function ReviewDetailPage() {
             <Button
               onClick={handleApprove}
               disabled={submitting || !reviewerName.trim()}
-              className="bg-green-700 hover:bg-green-800"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"
             >
-              <ThumbsUp className="size-4" />
-              Approve Changes
+              ⚠️ Update Baseline (Permanent)
             </Button>
             <Button
               onClick={handleReject}
