@@ -94,11 +94,7 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
           </div>
         </div>
 
-        {!expanded && (
-          <div className="mt-2 text-sm font-medium text-primary italic">
-            {getVerdict()}
-          </div>
-        )}
+
 
         {screen.changes.length > 0 && (
           <div className="mt-1 text-sm text-secondary">
@@ -256,13 +252,17 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                       const base = change.description || "Visual difference detected";
                       const userImpact = (() => {
                         if (change.changeType === "visual" || change.changeType === "color") {
-                          return "appearance changed";
+                          return "users see different colors/styles";
                         } else if (change.changeType === "content" || change.changeType === "text") {
-                          return "different text shown to users";
+                          return "users see different text/content";
                         } else if (change.changeType === "layout" || change.changeType === "structure") {
-                          return "page layout modified";
+                          return "page organization changed";
+                        } else if (change.changeType === "position" || change.changeType === "size") {
+                          return "element moved or resized";
+                        } else if (change.changeType === "missing" || change.changeType === "new") {
+                          return "element added or removed";
                         }
-                        return "UI modified";
+                        return "UI changed";
                       })();
                       return `${base} — ${userImpact}`;
                     };

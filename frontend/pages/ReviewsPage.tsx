@@ -206,7 +206,7 @@ export function ReviewsPage() {
                     <p className="text-xl font-bold text-yellow-600">{review.warnedScreens}</p>
                   </div>
                   <div className="bg-red-500/10 rounded-lg p-3">
-                    <p className="text-xs text-red-600 mb-1">Failed</p>
+                    <p className="text-xs text-red-600 mb-1">Screens Changed</p>
                     <p className="text-xl font-bold text-red-600">{review.failedScreens}</p>
                   </div>
                 </div>
@@ -215,10 +215,10 @@ export function ReviewsPage() {
                   <div className="mt-3 bg-accent/50 border-2 border-border-strong rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-primary">
-                        {review.worstScreenName}
+                        Worst: {review.worstScreenName}
                       </span>
                       <span className="text-sm font-semibold text-red-600">
-                        {review.worstScreenOriginality.toFixed(1)}% similar
+                        {review.worstScreenOriginality.toFixed(1)}%
                       </span>
                     </div>
                   </div>
