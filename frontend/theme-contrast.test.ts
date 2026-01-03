@@ -11,6 +11,7 @@ const FORBIDDEN_CLASSES = [
 const FORBIDDEN_IN_BASELINE_CARD = [
   /text-primary(?!-)/,
   /text-secondary(?!-)/,
+  /text-muted-foreground/,
 ];
 
 const BASELINE_UI_COMPONENTS = [
@@ -58,11 +59,10 @@ describe('Theme Contrast Guard', () => {
         throw new Error(
           `${componentPath} contains forbidden low-contrast classes:\n${violations.join('\n')}\n\n` +
           `Use semantic classes instead:\n` +
-          `- text-foreground (high contrast for titles and values)\n` +
-          `- text-foreground/80 (medium contrast for labels)\n` +
-          `- text-foreground/70 (secondary text like screen IDs)\n` +
-          `- text-muted-foreground (readable gray for hints/placeholders only)\n` +
-          `DO NOT use text-primary or text-secondary in BaselineCard (they are custom theme.css classes with poor dark mode contrast)`
+          `- text-value (high contrast for titles and data values)\n` +
+          `- text-label (medium contrast for labels like Route:, Viewport:, etc)\n` +
+          `- text-muted-foreground (for placeholders/hints only, NOT for labels)\n` +
+          `DO NOT use text-primary, text-secondary, or text-muted-foreground in BaselineCard`
         );
       }
     });

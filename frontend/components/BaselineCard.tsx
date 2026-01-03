@@ -52,8 +52,8 @@ export function BaselineCard({
     <div className="border rounded-lg p-4 bg-card hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-foreground mb-1">{baseline.name}</h3>
-          <p className="text-sm text-foreground/70">{baseline.screenId}</p>
+          <h3 className="font-semibold text-value mb-1">{baseline.name}</h3>
+          <p className="text-sm text-label">{baseline.screenId}</p>
         </div>
         <div className="flex items-center gap-2">
           {getStatusIcon()}
@@ -64,40 +64,40 @@ export function BaselineCard({
       <div className="space-y-2 mb-4">
         {baseline.url && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-foreground/80">Route:</span>
-            <code className="text-xs text-foreground bg-muted/30 border border-border px-2 py-1 rounded max-w-[200px] truncate">{baseline.url}</code>
+            <span className="text-label">Route:</span>
+            <code className="text-xs text-value bg-muted/30 border border-border px-2 py-1 rounded max-w-[200px] truncate">{baseline.url}</code>
           </div>
         )}
         {baseline.viewportWidth && baseline.viewportHeight && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-foreground/80">Viewport:</span>
-            <span className="text-foreground">{baseline.viewportWidth}×{baseline.viewportHeight}</span>
+            <span className="text-label">Viewport:</span>
+            <span className="text-value">{baseline.viewportWidth}×{baseline.viewportHeight}</span>
           </div>
         )}
         <div className="flex items-center justify-between text-sm">
-          <span className="text-foreground/80">Size:</span>
-          <span className="text-foreground">{formatSize(baseline.size)}</span>
+          <span className="text-label">Size:</span>
+          <span className="text-value">{formatSize(baseline.size)}</span>
         </div>
         <div className="flex items-start justify-between text-sm">
-          <span className="text-foreground/80">Hash:</span>
-          <code className="text-xs text-foreground bg-muted/30 border border-border px-2 py-1 rounded max-w-[200px] truncate" title={baseline.hash}>
+          <span className="text-label">Hash:</span>
+          <code className="text-xs text-value bg-muted/30 border border-border px-2 py-1 rounded max-w-[200px] truncate" title={baseline.hash}>
             {baseline.hash.slice(0, 12)}...
           </code>
         </div>
         {baseline.statusMessage && (
           <div className="flex items-start gap-2 text-sm">
             <AlertCircle className="size-3 text-yellow-500 mt-0.5 flex-shrink-0" />
-            <span className="text-foreground/80 text-xs">{baseline.statusMessage}</span>
+            <span className="text-label text-xs">{baseline.statusMessage}</span>
           </div>
         )}
         {baseline.tags && baseline.tags.length > 0 && (
           <div className="flex items-start gap-2 text-sm">
-            <span className="text-foreground/80">Tags:</span>
+            <span className="text-label">Tags:</span>
             <div className="flex flex-wrap gap-1">
               {baseline.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs bg-muted/30 text-foreground border border-border px-2 py-0.5 rounded-full"
+                  className="text-xs bg-muted/30 text-value border border-border px-2 py-0.5 rounded-full"
                 >
                   {tag}
                 </span>
