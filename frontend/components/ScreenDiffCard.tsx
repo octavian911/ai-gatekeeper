@@ -83,9 +83,6 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
             {getFlakeBadge()}
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-sm text-secondary">
-              {screen.originalityPercent.toFixed(1)}% similarity
-            </div>
             {expanded ? (
               <ChevronUp className="size-5 text-icon-muted" />
             ) : (
@@ -163,17 +160,6 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
               </div>
             </div>
 
-            {showAdvanced && screen.volatileRegionsMasked! > 0 && (
-              <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-3 mb-4">
-                <div className="text-sm font-semibold text-blue-700">
-                  ℹ️ Technical Details
-                </div>
-                <div className="text-xs text-blue-600 mt-1">
-                  {screen.volatileRegionsMasked} volatile region{screen.volatileRegionsMasked! > 1 ? 's' : ''} masked from comparison
-                </div>
-              </div>
-            )}
-
             <div className="mb-4">
               <Button
                 variant="ghost"
@@ -187,6 +173,23 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                 {showAdvanced ? '▼ Hide' : '▶ Show'} Advanced Details
               </Button>
             </div>
+
+            {showAdvanced && (
+              <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-3 mb-4">
+                <div className="text-sm font-semibold text-blue-700">
+                  ℹ️ Technical Metrics
+                </div>
+                <div className="text-xs text-blue-600 mt-1 space-y-1">
+                  <div>Similarity: {screen.originalityPercent.toFixed(1)}%</div>
+                  {screen.volatileRegionsMasked! > 0 && (
+                    <div>{screen.volatileRegionsMasked} volatile region{screen.volatileRegionsMasked! > 1 ? 's' : ''} masked from comparison</div>
+                  )}
+                  {screen.diffPixels && (
+                    <div>{screen.diffPixels.toLocaleString()} pixels changed</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {activeView === "diff" && (
               <div className="bg-card border-2 border-border-strong rounded-lg p-4">
@@ -244,15 +247,19 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                   {screen.changes.map((change) => {
                     const getImpactDescription = () => {
                       if (change.changeType === "visual") {
-                        return "Visual appearance changed - users will see different styling or layout";
+                        return "Users will see different styling or layout in this area";
                       } else if (change.changeType === "content") {
-                        return "Text or content modified - wording or messaging is different";
+                        return "Users will see different text, wording, or messaging";
                       } else if (change.changeType === "layout") {
-                        return "Component positioning changed - elements moved or resized";
+                        return "Users will see elements in different positions or sizes";
                       } else if (change.changeType === "color") {
-                        return "Color scheme updated - different visual appearance";
+                        return "Users will see a different color scheme or visual appearance";
+                      } else if (change.changeType === "structure") {
+                        return "Users will see a different component structure or hierarchy";
+                      } else if (change.changeType === "text") {
+                        return "Users will see different text content or labels";
                       }
-                      return change.description;
+                      return change.description ? `Users will see: ${change.description}` : "Visual difference detected - review image comparison above";
                     };
 
                     return (
