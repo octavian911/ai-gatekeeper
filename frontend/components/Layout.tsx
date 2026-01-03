@@ -10,9 +10,8 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
 
   const navItems = [
-    { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/baselines", label: "Baselines", icon: Database },
-    { path: "/settings", label: "Settings", icon: Settings },
+    { path: "/reviews", label: "QA Reviews", icon: Shield },
   ];
 
   return (

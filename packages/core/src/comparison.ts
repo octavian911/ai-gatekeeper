@@ -3,6 +3,12 @@ import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 import type { ComparisonResult, PolicyConfig } from './types.js';
 import { evaluateThreshold } from './policy.js';
+import { detectChanges, type DetectedChange } from './change-detector.js';
+
+export interface ComparisonResultExtended extends ComparisonResult {
+  detectedChanges?: DetectedChange[];
+  originalityPercent?: number;
+}
 
 export async function compareScreenshots(
   baselinePath: string,
@@ -11,7 +17,7 @@ export async function compareScreenshots(
   route: string,
   policy: PolicyConfig,
   threshold?: number
-): Promise<ComparisonResult> {
+): Promise<ComparisonResultExtended> {
   const [baselineData, actualData] = await Promise.all([
     fs.readFile(baselinePath),
     fs.readFile(actualPath),
@@ -42,6 +48,7 @@ export async function compareScreenshots(
 
   const totalPixels = baseline.width * baseline.height;
   const percentDiff = pixelsDiff / totalPixels;
+  const originalityPercent = ((totalPixels - pixelsDiff) / totalPixels) * 100;
 
   const effectiveThreshold = threshold ?? policy.pixelDiffThreshold;
   const passed = evaluateThreshold(pixelsDiff, totalPixels, {
@@ -49,8 +56,18 @@ export async function compareScreenshots(
     pixelDiffThreshold: effectiveThreshold,
   });
 
+  let detectedChanges: DetectedChange[] | undefined;
+
   if (!passed) {
     await fs.writeFile(diffPath, PNG.sync.write(diff));
+    
+    detectedChanges = detectChanges(
+      baselineData,
+      actualData,
+      diff.data,
+      baseline.width,
+      baseline.height
+    );
   }
 
   return {
@@ -62,5 +79,7 @@ export async function compareScreenshots(
     baselinePath,
     actualPath,
     diffPath: passed ? undefined : diffPath,
+    detectedChanges,
+    originalityPercent,
   };
 }

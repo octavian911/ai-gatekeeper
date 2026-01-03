@@ -1,0 +1,410 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import backend from "~backend/client";
+import type { ReviewDetail, ScreenResult } from "~backend/runs/get_review";
+import { CheckCircle2, XCircle, AlertTriangle, ArrowLeft, Eye, FileText, ThumbsUp, ThumbsDown, Layers } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Input } from "../components/ui/input";
+import { useToast } from "../hooks/useToast";
+import { FlakeVisualization } from "../components/FlakeVisualization";
+
+export function ReviewDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { showToast, ToastContainer } = useToast();
+  const navigate = useNavigate();
+  const [review, setReview] = useState<ReviewDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedScreen, setSelectedScreen] = useState<ScreenResult | null>(null);
+  const [reviewerName, setReviewerName] = useState("");
+  const [reviewNotes, setReviewNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [showFlakeView, setShowFlakeView] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchReview(parseInt(id));
+    }
+  }, [id]);
+
+  const fetchReview = async (reviewId: number) => {
+    setLoading(true);
+    try {
+      const response = await backend.runs.getReview({ id: reviewId });
+      setReview(response);
+      setReviewNotes(response.reviewNotes || "");
+    } catch (error) {
+      console.error("Failed to fetch review:", error);
+      showToast("Failed to load review", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!reviewerName.trim()) {
+      showToast("Please enter your name", "warning");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await backend.runs.updateReview({
+        id: parseInt(id!),
+        reviewStatus: "approved",
+        reviewedBy: reviewerName,
+        reviewNotes: reviewNotes || undefined,
+      });
+      showToast("Review approved successfully", "success");
+      await fetchReview(parseInt(id!));
+    } catch (error) {
+      console.error("Failed to approve:", error);
+      showToast("Failed to approve review", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!reviewerName.trim()) {
+      showToast("Please enter your name", "warning");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await backend.runs.updateReview({
+        id: parseInt(id!),
+        reviewStatus: "rejected",
+        reviewedBy: reviewerName,
+        reviewNotes: reviewNotes || undefined,
+      });
+      showToast("Review rejected", "success");
+      await fetchReview(parseInt(id!));
+    } catch (error) {
+      console.error("Failed to reject:", error);
+      showToast("Failed to reject review", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "PASS":
+        return <Badge className="bg-green-500/10 text-green-600 border-green-500/30">PASS</Badge>;
+      case "WARN":
+        return <Badge className="bg-yellow-500/10 text-yellow-600 border-yellow-500/30">WARN</Badge>;
+      case "FAIL":
+        return <Badge className="bg-red-500/10 text-red-600 border-red-500/30">FAIL</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  const getOriginalityColor = (percent: number) => {
+    if (percent >= 99.95) return "text-green-600";
+    if (percent >= 99.5) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-12">
+          <div className="size-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-secondary">Loading review...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!review) {
+    return (
+      <div className="p-8">
+        <div className="text-center py-16">
+          <XCircle className="size-16 mx-auto mb-4 text-red-500" />
+          <h3 className="text-xl font-semibold text-primary mb-2">Review not found</h3>
+          <Button onClick={() => navigate("/reviews")} className="mt-4">
+            <ArrowLeft className="size-4" />
+            Back to Reviews
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const isPending = !review.reviewStatus || review.reviewStatus === "pending";
+
+  return (
+    <div className="p-8">
+      <ToastContainer />
+      
+      <div className="mb-6">
+        <Button variant="outline" size="sm" onClick={() => navigate("/reviews")} className="mb-4">
+          <ArrowLeft className="size-4" />
+          Back to Reviews
+        </Button>
+        
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-primary mb-2">
+              Review #{review.id} - {review.branch}
+            </h1>
+            <div className="flex items-center gap-4 text-sm text-secondary">
+              <span>Commit: {review.commit.substring(0, 7)}</span>
+              {review.pullRequest > 0 && <span>PR #{review.pullRequest}</span>}
+              <span>{new Date(review.timestamp).toLocaleString()}</span>
+            </div>
+          </div>
+          {review.reviewStatus === "approved" && (
+            <Badge className="bg-green-500/10 text-green-600 border-green-500/30 text-base px-4 py-2">
+              <CheckCircle2 className="size-5" />
+              Approved by {review.reviewedBy}
+            </Badge>
+          )}
+          {review.reviewStatus === "rejected" && (
+            <Badge className="bg-red-500/10 text-red-600 border-red-500/30 text-base px-4 py-2">
+              <XCircle className="size-5" />
+              Rejected by {review.reviewedBy}
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="bg-card border-2 border-border-strong rounded-lg p-4">
+          <p className="text-sm text-secondary mb-1">Total Screens</p>
+          <p className="text-2xl font-bold text-primary">{review.totalScreens}</p>
+        </div>
+        <div className="bg-green-500/10 border-2 border-green-500/30 rounded-lg p-4">
+          <p className="text-sm text-green-600 mb-1">Passed</p>
+          <p className="text-2xl font-bold text-green-600">{review.passedScreens}</p>
+        </div>
+        <div className="bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg p-4">
+          <p className="text-sm text-yellow-600 mb-1">Warnings</p>
+          <p className="text-2xl font-bold text-yellow-600">{review.warnedScreens}</p>
+        </div>
+        <div className="bg-red-500/10 border-2 border-red-500/30 rounded-lg p-4">
+          <p className="text-sm text-red-600 mb-1">Failed</p>
+          <p className="text-2xl font-bold text-red-600">{review.failedScreens}</p>
+        </div>
+      </div>
+
+      {isPending && (
+        <div className="bg-card border-2 border-border-strong rounded-lg p-6 mb-6">
+          <h2 className="text-xl font-semibold text-primary mb-4">Review Actions</h2>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-secondary mb-2">Reviewer Name</label>
+              <Input
+                placeholder="Enter your name"
+                value={reviewerName}
+                onChange={(e) => setReviewerName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-secondary mb-2">Notes (optional)</label>
+              <Input
+                placeholder="Add review notes"
+                value={reviewNotes}
+                onChange={(e) => setReviewNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleApprove}
+              disabled={submitting || !reviewerName.trim()}
+              className="bg-green-700 hover:bg-green-800"
+            >
+              <ThumbsUp className="size-4" />
+              Approve Changes
+            </Button>
+            <Button
+              onClick={handleReject}
+              disabled={submitting || !reviewerName.trim()}
+              variant="destructive"
+            >
+              <ThumbsDown className="size-4" />
+              Reject Changes
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {review.reviewNotes && (
+        <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <FileText className="size-5 text-blue-600 mt-0.5" />
+            <div>
+              <p className="font-semibold text-blue-600 mb-1">Review Notes</p>
+              <p className="text-sm text-foreground">{review.reviewNotes}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-semibold text-primary">Screen Results</h2>
+        <Button
+          variant="outline"
+          onClick={() => setShowFlakeView(!showFlakeView)}
+        >
+          <Layers className="size-4" />
+          {showFlakeView ? "Show Results" : "Show Flake Analysis"}
+        </Button>
+      </div>
+      {showFlakeView ? (
+        <div className="space-y-6">
+          {review.screens.map((screen) => (
+            <FlakeVisualization
+              key={screen.screenId}
+              screenId={screen.screenId}
+              screenName={screen.name}
+              baselineImage={screen.expectedPath || ""}
+              masks={[]}
+              diffPixels={screen.diffPixels}
+              totalPixels={screen.diffPixels / (screen.diffPixelRatio || 0.0001)}
+              maskCoveragePercent={0}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {review.screens.map((screen) => (
+          <div
+            key={screen.screenId}
+            className="bg-card border-2 border-border-strong rounded-lg p-6 hover:shadow-md transition-all"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  {getStatusBadge(screen.status)}
+                  <h3 className="text-lg font-semibold text-primary">{screen.name}</h3>
+                </div>
+                <p className="text-sm text-secondary">{screen.url}</p>
+              </div>
+              <div className="text-right">
+                <p className={`text-3xl font-bold ${getOriginalityColor(screen.originalityPercent)}`}>
+                  {screen.originalityPercent.toFixed(2)}%
+                </p>
+                <p className="text-xs text-secondary">Original</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="bg-background rounded-lg p-3">
+                <p className="text-xs text-secondary mb-1">Diff Pixels</p>
+                <p className="text-lg font-semibold text-primary">{screen.diffPixels.toLocaleString()}</p>
+              </div>
+              <div className="bg-background rounded-lg p-3">
+                <p className="text-xs text-secondary mb-1">Diff Ratio</p>
+                <p className="text-lg font-semibold text-primary">{(screen.diffPixelRatio * 100).toFixed(4)}%</p>
+              </div>
+              <div className="bg-background rounded-lg p-3">
+                <p className="text-xs text-secondary mb-1">Changes Detected</p>
+                <p className="text-lg font-semibold text-primary">{screen.changes.length}</p>
+              </div>
+            </div>
+
+            {screen.changes.length > 0 && (
+              <div className="border-t-2 border-border-strong pt-4">
+                <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                  <AlertTriangle className="size-4 text-yellow-500" />
+                  Detected Changes
+                </h4>
+                <div className="space-y-2">
+                  {screen.changes.slice(0, 5).map((change, idx) => (
+                    <div
+                      key={change.id}
+                      className="flex items-start gap-3 bg-background rounded-lg p-3"
+                    >
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-primary">{change.description}</p>
+                        {change.selector && (
+                          <p className="text-xs text-secondary mt-1 font-mono">{change.selector}</p>
+                        )}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`${
+                          change.confidence >= 0.8
+                            ? "bg-green-500/10 text-green-600 border-green-500/30"
+                            : "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
+                        }`}
+                      >
+                        {Math.round(change.confidence * 100)}% confident
+                      </Badge>
+                    </div>
+                  ))}
+                  {screen.changes.length > 5 && (
+                    <p className="text-xs text-secondary text-center py-2">
+                      +{screen.changes.length - 5} more changes
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {screen.diffPath && (
+              <div className="border-t-2 border-border-strong pt-4 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedScreen(screen)}
+                >
+                  <Eye className="size-4" />
+                  View Visual Diff
+                </Button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      )}
+
+      {selectedScreen && (
+        <div
+          className="fixed inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50 p-8"
+          onClick={() => setSelectedScreen(null)}
+        >
+          <div
+            className="bg-card border-2 border-border-strong rounded-lg max-w-7xl w-full max-h-[90vh] overflow-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-primary">{selectedScreen.name}</h3>
+                <p className="text-sm text-secondary">{selectedScreen.url}</p>
+              </div>
+              <Button variant="outline" onClick={() => setSelectedScreen(null)}>
+                Close
+              </Button>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm font-semibold text-secondary mb-2">Expected</p>
+                <div className="border-2 border-border-strong rounded-lg overflow-hidden">
+                  <img src={selectedScreen.expectedPath} alt="Expected" className="w-full" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-secondary mb-2">Actual</p>
+                <div className="border-2 border-border-strong rounded-lg overflow-hidden">
+                  <img src={selectedScreen.actualPath} alt="Actual" className="w-full" />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-secondary mb-2">Diff</p>
+                <div className="border-2 border-red-500/50 rounded-lg overflow-hidden">
+                  <img src={selectedScreen.diffPath} alt="Diff" className="w-full" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

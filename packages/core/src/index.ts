@@ -11,6 +11,7 @@ export * from './deterministic.js';
 export * from './masks.js';
 export * from './status.js';
 export * from './policy-loader.js';
+export * from './change-detector.js';
 
 export {
   suggestMasksForScreen,
