@@ -285,10 +285,14 @@ export function BaselinesPage() {
       const link = document.createElement("a");
       link.href = url;
       link.download = response.filename;
+      link.style.display = "none";
+      link.setAttribute("target", "_blank");
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
       showToast("Baselines exported successfully", "success");
     } catch (error) {
       console.error("Export failed:", error);
