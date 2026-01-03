@@ -21,7 +21,28 @@ export interface CreateReviewResponse {
 export const createReview = api<CreateReviewRequest, CreateReviewResponse>(
   { expose: true, method: "POST", path: "/runs/reviews" },
   async (req) => {
-    const status = req.failedScreens > 0 ? "failed" : "passed";
+    let totalScreens = req.totalScreens || 0;
+    let passedScreens = req.passedScreens || 0;
+    let warnedScreens = req.warnedScreens || 0;
+    let failedScreens = req.failedScreens || 0;
+
+    if (req.runData?.screens) {
+      const screens = Object.values(req.runData.screens);
+      totalScreens = screens.length;
+      passedScreens = screens.filter((s: any) => s.status === "passed").length;
+      warnedScreens = screens.filter((s: any) => s.status === "warned").length;
+      failedScreens = screens.filter((s: any) => s.status === "failed").length;
+    }
+
+    const enrichedRunData = {
+      ...req.runData,
+      total: totalScreens,
+      passed: passedScreens,
+      warned: warnedScreens,
+      failed: failedScreens,
+    };
+
+    const status = failedScreens > 0 ? "failed" : "passed";
     
     const result = await db.queryRow<{ id: number }>`
       INSERT INTO runs (
@@ -36,7 +57,7 @@ export const createReview = api<CreateReviewRequest, CreateReviewResponse>(
         ${req.commit || "unknown"},
         ${req.branch || "unknown"},
         ${status},
-        ${JSON.stringify(req.runData)},
+        ${enrichedRunData},
         'pending'
       )
       RETURNING id

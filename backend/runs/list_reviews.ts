@@ -16,6 +16,9 @@ export interface ReviewItem {
   passedScreens: number;
   warnedScreens: number;
   failedScreens: number;
+  worstScreenName?: string;
+  worstScreenOriginality?: number;
+  worstScreenStatus?: string;
 }
 
 export interface ListReviewsResponse {
@@ -57,6 +60,30 @@ export const listReviews = api<void, ListReviewsResponse>(
     const reviews: ReviewItem[] = rows.map((row) => {
       const runData = row.run_data || {};
       
+      let worstScreenName: string | undefined;
+      let worstScreenOriginality: number | undefined;
+      let worstScreenStatus: string | undefined;
+
+      if (runData.screens) {
+        const screens = Object.entries(runData.screens);
+        if (screens.length > 0) {
+          const failedScreens = screens.filter(([_, s]: [string, any]) => s.status === "failed");
+          const warnedScreens = screens.filter(([_, s]: [string, any]) => s.status === "warned");
+          
+          const worstList = failedScreens.length > 0 ? failedScreens : warnedScreens.length > 0 ? warnedScreens : screens;
+          
+          if (worstList.length > 0) {
+            const [screenId, screenData] = worstList.sort(([_, a]: [string, any], [__, b]: [string, any]) => 
+              (a.originality || 100) - (b.originality || 100)
+            )[0] as [string, any];
+            
+            worstScreenName = screenId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+            worstScreenOriginality = screenData.originality;
+            worstScreenStatus = screenData.status;
+          }
+        }
+      }
+      
       return {
         id: row.id,
         runId: `run-${row.id}`,
@@ -72,6 +99,9 @@ export const listReviews = api<void, ListReviewsResponse>(
         passedScreens: runData.passed || 0,
         warnedScreens: runData.warned || 0,
         failedScreens: runData.failed || 0,
+        worstScreenName,
+        worstScreenOriginality,
+        worstScreenStatus,
       };
     });
 

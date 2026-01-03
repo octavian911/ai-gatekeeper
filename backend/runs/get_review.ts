@@ -13,6 +13,12 @@ export interface ScreenResult {
   actualPath?: string;
   diffPath?: string;
   changes: ScreenChange[];
+  flakeStatus?: "stable" | "unstable" | "unknown";
+  suggestedMasks?: number;
+  volatileRegionsMasked?: number;
+  baselineImageUrl?: string;
+  currentImageUrl?: string;
+  diffImageUrl?: string;
 }
 
 export interface ScreenChange {
@@ -103,6 +109,7 @@ export const getReview = api<{ id: number }, ReviewDetail>(
 
     const runData = row.run_data || {};
     const results = runData.results || [];
+    const screensData = runData.screens || {};
 
     const changesByScreen = new Map<string, ScreenChange[]>();
     for (const change of changes) {
@@ -119,19 +126,57 @@ export const getReview = api<{ id: number }, ReviewDetail>(
       });
     }
 
-    const screens: ScreenResult[] = results.map((result: any) => ({
-      screenId: result.screenId,
-      name: result.name,
-      url: result.url,
-      status: result.status,
-      diffPixels: result.diffPixels || 0,
-      diffPixelRatio: result.diffPixelRatio || 0,
-      originalityPercent: result.originalityPercent || 100,
-      expectedPath: result.expectedPath,
-      actualPath: result.actualPath,
-      diffPath: result.diffPath,
-      changes: changesByScreen.get(result.screenId) || [],
-    }));
+    const screens: ScreenResult[] = [];
+    
+    if (Object.keys(screensData).length > 0) {
+      for (const [screenId, screenInfo] of Object.entries(screensData)) {
+        const info = screenInfo as any;
+        const detectedChanges = (info.changes || []).map((c: any, idx: number) => ({
+          id: idx,
+          changeType: c.type || "unknown",
+          selector: c.selector,
+          description: c.description || "",
+          confidence: c.severity === "high" ? 0.9 : c.severity === "medium" ? 0.7 : 0.5,
+          metadata: c,
+        }));
+
+        screens.push({
+          screenId,
+          name: screenId.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+          url: info.url || "",
+          status: info.status === "failed" ? "FAIL" : info.status === "warned" ? "WARN" : "PASS",
+          diffPixels: 0,
+          diffPixelRatio: (100 - (info.originality || 100)) / 100,
+          originalityPercent: info.originality || 100,
+          expectedPath: info.baselineImageUrl,
+          actualPath: info.currentImageUrl,
+          diffPath: info.diffImageUrl,
+          baselineImageUrl: info.baselineImageUrl,
+          currentImageUrl: info.currentImageUrl,
+          diffImageUrl: info.diffImageUrl,
+          flakeStatus: info.flakeStatus || "unknown",
+          suggestedMasks: info.suggestedMasks || 0,
+          volatileRegionsMasked: info.volatileRegionsMasked || 0,
+          changes: detectedChanges.length > 0 ? detectedChanges : (changesByScreen.get(screenId) || []),
+        });
+      }
+    } else {
+      for (const result of results) {
+        screens.push({
+          screenId: result.screenId,
+          name: result.name,
+          url: result.url,
+          status: result.status,
+          diffPixels: result.diffPixels || 0,
+          diffPixelRatio: result.diffPixelRatio || 0,
+          originalityPercent: result.originalityPercent || 100,
+          expectedPath: result.expectedPath,
+          actualPath: result.actualPath,
+          diffPath: result.diffPath,
+          changes: changesByScreen.get(result.screenId) || [],
+        });
+      }
+    }
 
     return {
       id: row.id,

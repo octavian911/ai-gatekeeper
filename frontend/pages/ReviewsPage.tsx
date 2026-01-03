@@ -191,23 +191,53 @@ export function ReviewsPage() {
                 {getReviewBadge(review.reviewStatus)}
               </div>
 
-              <div className="grid grid-cols-4 gap-4 mb-4">
-                <div className="bg-background rounded-lg p-3">
-                  <p className="text-xs text-secondary mb-1">Total Screens</p>
-                  <p className="text-xl font-bold text-primary">{review.totalScreens}</p>
+              <div className="mb-4">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="bg-background rounded-lg p-3">
+                    <p className="text-xs text-secondary mb-1">Total Screens</p>
+                    <p className="text-xl font-bold text-primary">{review.totalScreens}</p>
+                  </div>
+                  <div className="bg-green-500/10 rounded-lg p-3">
+                    <p className="text-xs text-green-600 mb-1">Passed</p>
+                    <p className="text-xl font-bold text-green-600">{review.passedScreens}</p>
+                  </div>
+                  <div className="bg-yellow-500/10 rounded-lg p-3">
+                    <p className="text-xs text-yellow-600 mb-1">Warnings</p>
+                    <p className="text-xl font-bold text-yellow-600">{review.warnedScreens}</p>
+                  </div>
+                  <div className="bg-red-500/10 rounded-lg p-3">
+                    <p className="text-xs text-red-600 mb-1">Failed</p>
+                    <p className="text-xl font-bold text-red-600">{review.failedScreens}</p>
+                  </div>
                 </div>
-                <div className="bg-green-500/10 rounded-lg p-3">
-                  <p className="text-xs text-green-600 mb-1">Passed</p>
-                  <p className="text-xl font-bold text-green-600">{review.passedScreens}</p>
-                </div>
-                <div className="bg-yellow-500/10 rounded-lg p-3">
-                  <p className="text-xs text-yellow-600 mb-1">Warnings</p>
-                  <p className="text-xl font-bold text-yellow-600">{review.warnedScreens}</p>
-                </div>
-                <div className="bg-red-500/10 rounded-lg p-3">
-                  <p className="text-xs text-red-600 mb-1">Failed</p>
-                  <p className="text-xl font-bold text-red-600">{review.failedScreens}</p>
-                </div>
+
+                {review.worstScreenName && (
+                  <div className="mt-3 bg-accent/50 border-2 border-border-strong rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          className={
+                            review.worstScreenStatus === "failed" 
+                              ? "bg-red-500/10 text-red-600 border-red-500/30"
+                              : review.worstScreenStatus === "warned"
+                              ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
+                              : "bg-green-500/10 text-green-600 border-green-500/30"
+                          }
+                        >
+                          Worst Screen
+                        </Badge>
+                        <span className="text-sm font-semibold text-primary">
+                          {review.worstScreenName}
+                        </span>
+                      </div>
+                      {review.worstScreenOriginality !== undefined && (
+                        <span className="text-sm font-mono font-semibold text-secondary">
+                          {review.worstScreenOriginality.toFixed(1)}% similarity
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between text-sm text-secondary">

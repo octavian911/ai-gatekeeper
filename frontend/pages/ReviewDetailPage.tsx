@@ -8,6 +8,8 @@ import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import { useToast } from "../hooks/useToast";
 import { FlakeVisualization } from "../components/FlakeVisualization";
+import { ConfirmationDialog } from "../components/ConfirmationDialog";
+import { ScreenDiffCard } from "../components/ScreenDiffCard";
 
 export function ReviewDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +22,7 @@ export function ReviewDetailPage() {
   const [reviewNotes, setReviewNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showFlakeView, setShowFlakeView] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -46,7 +49,10 @@ export function ReviewDetailPage() {
       showToast("Please enter your name", "warning");
       return;
     }
+    setConfirmAction("approve");
+  };
 
+  const confirmApprove = async () => {
     setSubmitting(true);
     try {
       await backend.runs.updateReview({
@@ -70,7 +76,10 @@ export function ReviewDetailPage() {
       showToast("Please enter your name", "warning");
       return;
     }
+    setConfirmAction("reject");
+  };
 
+  const confirmReject = async () => {
     setSubmitting(true);
     try {
       await backend.runs.updateReview({
@@ -272,97 +281,20 @@ export function ReviewDetailPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {review.screens.map((screen) => (
-          <div
-            key={screen.screenId}
-            className="bg-card border-2 border-border-strong rounded-lg p-6 hover:shadow-md transition-all"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  {getStatusBadge(screen.status)}
-                  <h3 className="text-lg font-semibold text-primary">{screen.name}</h3>
-                </div>
-                <p className="text-sm text-secondary">{screen.url}</p>
-              </div>
-              <div className="text-right">
-                <p className={`text-3xl font-bold ${getOriginalityColor(screen.originalityPercent)}`}>
-                  {screen.originalityPercent.toFixed(2)}%
-                </p>
-                <p className="text-xs text-secondary">Original</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="bg-background rounded-lg p-3">
-                <p className="text-xs text-secondary mb-1">Diff Pixels</p>
-                <p className="text-lg font-semibold text-primary">{screen.diffPixels.toLocaleString()}</p>
-              </div>
-              <div className="bg-background rounded-lg p-3">
-                <p className="text-xs text-secondary mb-1">Diff Ratio</p>
-                <p className="text-lg font-semibold text-primary">{(screen.diffPixelRatio * 100).toFixed(4)}%</p>
-              </div>
-              <div className="bg-background rounded-lg p-3">
-                <p className="text-xs text-secondary mb-1">Changes Detected</p>
-                <p className="text-lg font-semibold text-primary">{screen.changes.length}</p>
-              </div>
-            </div>
-
-            {screen.changes.length > 0 && (
-              <div className="border-t-2 border-border-strong pt-4">
-                <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                  <AlertTriangle className="size-4 text-yellow-500" />
-                  Detected Changes
-                </h4>
-                <div className="space-y-2">
-                  {screen.changes.slice(0, 5).map((change, idx) => (
-                    <div
-                      key={change.id}
-                      className="flex items-start gap-3 bg-background rounded-lg p-3"
-                    >
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-primary">{change.description}</p>
-                        {change.selector && (
-                          <p className="text-xs text-secondary mt-1 font-mono">{change.selector}</p>
-                        )}
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={`${
-                          change.confidence >= 0.8
-                            ? "bg-green-500/10 text-green-600 border-green-500/30"
-                            : "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
-                        }`}
-                      >
-                        {Math.round(change.confidence * 100)}% confident
-                      </Badge>
-                    </div>
-                  ))}
-                  {screen.changes.length > 5 && (
-                    <p className="text-xs text-secondary text-center py-2">
-                      +{screen.changes.length - 5} more changes
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {screen.diffPath && (
-              <div className="border-t-2 border-border-strong pt-4 mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedScreen(screen)}
-                >
-                  <Eye className="size-4" />
-                  View Visual Diff
-                </Button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+          {review.screens.map((screen, index) => (
+            <ScreenDiffCard key={screen.screenId} screen={screen} index={index} />
+          ))}
+        </div>
       )}
+
+      <ConfirmationDialog
+        open={confirmAction !== null}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={confirmAction === "approve" ? confirmApprove : confirmReject}
+        action={confirmAction || "approve"}
+        screenCount={review.totalScreens}
+        failedCount={review.failedScreens}
+      />
 
       {selectedScreen && (
         <div
