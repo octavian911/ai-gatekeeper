@@ -32,7 +32,7 @@ interface TabsListProps {
 
 export function TabsList({ children }: TabsListProps) {
   return (
-    <div className="flex border-b border-border">
+    <div className="flex border-b-2 border-border">
       {children}
     </div>
   );
@@ -53,7 +53,7 @@ export function TabsTrigger({ value, children }: TabsTriggerProps) {
     <button
       className={`px-4 py-2 font-medium transition-colors ${
         isActive
-          ? "border-b-2 border-primary text-foreground"
+          ? "border-b-[3px] border-primary text-foreground"
           : "text-muted-foreground hover:text-foreground"
       }`}
       onClick={() => context.onValueChange(value)}

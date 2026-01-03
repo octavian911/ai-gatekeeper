@@ -125,8 +125,8 @@ export function BaselinePreviewDrawer({
     <div className="fixed inset-0 z-50 flex">
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="ml-auto relative z-50 bg-background border-l w-full max-w-2xl h-full overflow-y-auto">
-        <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
+      <div className="ml-auto relative z-50 bg-background border-l-2 border-border-strong w-full max-w-2xl h-full overflow-y-auto">
+        <div className="sticky top-0 bg-background border-b-2 border-border p-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-primary">{baseline.name}</h2>
           <div className="flex gap-2">
             {!editing && onUpdateMetadata && (
@@ -142,7 +142,7 @@ export function BaselinePreviewDrawer({
 
         <div className="p-6 space-y-6">
           <div>
-            <img src={imageData} alt={baseline.name} className="w-full border rounded-lg" />
+            <img src={imageData} alt={baseline.name} className="w-full border-2 border-border rounded-lg" />
           </div>
 
           <div>
@@ -225,7 +225,7 @@ export function BaselinePreviewDrawer({
                   className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-md ${
                     tags.includes(tag)
                       ? "bg-primary text-primary-foreground"
-                      : "border border-border text-primary"
+                      : "border-2 border-border text-primary"
                   } ${editing ? "cursor-pointer hover:bg-accent" : ""}`}
                 >
                   {tag}
@@ -260,7 +260,7 @@ export function BaselinePreviewDrawer({
             ) : (
               <div className="space-y-2">
                 {masks.map((mask, idx) => (
-                  <div key={idx} className="border rounded p-3 text-sm space-y-2">
+                  <div key={idx} className="border-2 border-border rounded p-3 text-sm space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-primary font-medium">
                         {mask.type === "css" ? "CSS Selector" : "Rectangle"}
