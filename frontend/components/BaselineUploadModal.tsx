@@ -23,9 +23,10 @@ interface BaselineUploadModalProps {
   open: boolean;
   onClose: () => void;
   onUpload: (baselines: BaselineInput[]) => Promise<void>;
+  showToast?: (message: string, type: "success" | "error" | "warning") => void;
 }
 
-export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadModalProps) {
+export function BaselineUploadModal({ open, onClose, onUpload, showToast }: BaselineUploadModalProps) {
   const [baselines, setBaselines] = useState<BaselineInput[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
@@ -35,15 +36,18 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
     if (!files) return;
 
     const newBaselines: BaselineInput[] = [];
+    const invalidFiles: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
 
       if (!file.type.match(/^image\/(png|jpe?g|webp)$/)) {
+        invalidFiles.push(`${file.name}: Only PNG/JPG/JPEG/WEBP files are supported`);
         continue;
       }
 
       if (file.size > 5 * 1024 * 1024) {
+        invalidFiles.push(`${file.name}: File exceeds 5MB limit`);
         continue;
       }
 
@@ -70,6 +74,10 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
         width: img.width,
         height: img.height,
       });
+    }
+
+    if (invalidFiles.length > 0 && showToast) {
+      invalidFiles.forEach(error => showToast(error, "error"));
     }
 
     setBaselines([...baselines, ...newBaselines]);

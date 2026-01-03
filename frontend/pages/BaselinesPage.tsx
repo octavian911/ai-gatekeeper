@@ -521,6 +521,7 @@ export function BaselinesPage() {
           open={showUploadModal}
           onClose={() => setShowUploadModal(false)}
           onUpload={handleUploadBaselines}
+          showToast={showToast}
         />
       )}
 
