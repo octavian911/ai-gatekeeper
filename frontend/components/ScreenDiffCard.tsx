@@ -58,19 +58,43 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
     return null;
   };
 
-  const getVerdict = () => {
-    if (screen.status === "FAIL") {
-      return "This screen changed beyond acceptable limits - review required";
-    } else if (screen.status === "WARN") {
-      return "Minor changes detected - review recommended but likely safe";
-    } else {
-      return "Screen matches baseline within acceptable limits";
-    }
-  };
 
-  const getAdvancedVerdict = () => {
-    const drift = 100 - screen.originalityPercent;
-    return `Drift: ${drift.toFixed(1)}% (${screen.originalityPercent.toFixed(1)}% similarity to baseline)`;
+
+  const describeImpact = (change: any): string => {
+    const base = change.description || "Visual difference detected";
+    const changeTypeLower = (change.changeType || "").toLowerCase();
+    
+    let impact = "";
+    
+    if (changeTypeLower.includes("color") || changeTypeLower.includes("background") || changeTypeLower.includes("foreground")) {
+      impact = "affects visual hierarchy and brand consistency";
+    } else if (changeTypeLower.includes("text") || changeTypeLower.includes("content") || changeTypeLower.includes("copy")) {
+      impact = "users see different messaging or information";
+    } else if (changeTypeLower.includes("font") || changeTypeLower.includes("typography") || changeTypeLower.includes("weight") || changeTypeLower.includes("size")) {
+      impact = "changes readability and emphasis";
+    } else if (changeTypeLower.includes("layout") || changeTypeLower.includes("structure") || changeTypeLower.includes("grid")) {
+      impact = "reorganizes how users scan the page";
+    } else if (changeTypeLower.includes("position") || changeTypeLower.includes("move") || changeTypeLower.includes("spacing") || changeTypeLower.includes("align")) {
+      impact = "shifts where elements appear on screen";
+    } else if (changeTypeLower.includes("missing") || changeTypeLower.includes("removed") || changeTypeLower.includes("hidden")) {
+      impact = "functionality or content may be unavailable";
+    } else if (changeTypeLower.includes("new") || changeTypeLower.includes("added") || changeTypeLower.includes("visible")) {
+      impact = "introduces new UI or functionality";
+    } else if (changeTypeLower.includes("button") || changeTypeLower.includes("field") || changeTypeLower.includes("input")) {
+      impact = "changes interactive elements users click or fill";
+    } else if (changeTypeLower.includes("image") || changeTypeLower.includes("icon") || changeTypeLower.includes("graphic")) {
+      impact = "alters visual identity or informational graphics";
+    } else if (changeTypeLower.includes("border") || changeTypeLower.includes("radius") || changeTypeLower.includes("shadow")) {
+      impact = "changes component boundaries and depth perception";
+    } else if (changeTypeLower.includes("contrast")) {
+      impact = "affects accessibility and legibility";
+    } else if (changeTypeLower.includes("visual")) {
+      impact = "may affect overall appearance and user perception";
+    } else {
+      impact = "visual change may affect consistency or usability";
+    }
+    
+    return `${base} — ${impact}`;
   };
 
   return (
@@ -247,61 +271,40 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
               <div className="mt-4 bg-card border-2 border-border-strong rounded-lg p-4">
                 <h4 className="text-sm font-semibold text-primary mb-3">Detected Changes</h4>
                 <div className="space-y-2">
-                  {screen.changes.map((change) => {
-                    const getImpactDescription = () => {
-                      const base = change.description || "Visual difference detected";
-                      const userImpact = (() => {
-                        if (change.changeType === "visual" || change.changeType === "color") {
-                          return "users see different colors/styles";
-                        } else if (change.changeType === "content" || change.changeType === "text") {
-                          return "users see different text/content";
-                        } else if (change.changeType === "layout" || change.changeType === "structure") {
-                          return "page organization changed";
-                        } else if (change.changeType === "position" || change.changeType === "size") {
-                          return "element moved or resized";
-                        } else if (change.changeType === "missing" || change.changeType === "new") {
-                          return "element added or removed";
-                        }
-                        return "UI changed";
-                      })();
-                      return `${base} — ${userImpact}`;
-                    };
-
-                    return (
-                      <div
-                        key={change.id}
-                        className="flex items-start gap-3 p-2 rounded bg-accent/30"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              {change.changeType}
+                  {screen.changes.map((change) => (
+                    <div
+                      key={change.id}
+                      className="flex items-start gap-3 p-2 rounded bg-accent/30"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {change.changeType}
+                          </Badge>
+                          {change.metadata?.severity && (
+                            <Badge
+                              variant="outline"
+                              className={
+                                change.metadata.severity === "high"
+                                  ? "bg-red-500/10 text-red-600 border-red-500/30"
+                                  : change.metadata.severity === "medium"
+                                  ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
+                                  : "bg-blue-500/10 text-blue-600 border-blue-500/30"
+                              }
+                            >
+                              {change.metadata.severity} impact
                             </Badge>
-                            {change.metadata?.severity && (
-                              <Badge
-                                variant="outline"
-                                className={
-                                  change.metadata.severity === "high"
-                                    ? "bg-red-500/10 text-red-600 border-red-500/30"
-                                    : change.metadata.severity === "medium"
-                                    ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
-                                    : "bg-blue-500/10 text-blue-600 border-blue-500/30"
-                                }
-                              >
-                                {change.metadata.severity} impact
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-primary mt-1">{getImpactDescription()}</p>
-                          {change.selector && showAdvanced && (
-                            <code className="text-xs text-secondary font-mono block mt-1">
-                              {change.selector}
-                            </code>
                           )}
                         </div>
+                        <p className="text-sm text-primary mt-1">{describeImpact(change)}</p>
+                        {change.selector && showAdvanced && (
+                          <code className="text-xs text-secondary font-mono block mt-1">
+                            {change.selector}
+                          </code>
+                        )}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
