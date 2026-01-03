@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import backend from "~backend/client";
 import { BaselineCard } from "../components/BaselineCard";
 import { BaselineUploadModal, BaselineInput } from "../components/BaselineUploadModal";
@@ -8,8 +8,10 @@ import { ReviewerGuidancePanel } from "../components/ReviewerGuidancePanel";
 import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, GitBranch, Download } from "lucide-react";
 import { Button } from "../components/ui/button";
 import type { BaselineMetadata } from "~backend/baselines/list_fs";
+import { useToast } from "../hooks/useToast";
 
 export function BaselinesPage() {
+  const { showToast, ToastContainer } = useToast();
   const [baselines, setBaselines] = useState<BaselineMetadata[]>([]);
   const [filteredBaselines, setFilteredBaselines] = useState<BaselineMetadata[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,27 +98,82 @@ export function BaselinesPage() {
     }
   };
 
-  const handleValidate = async (screenId: string) => {
+  const handleValidate = useCallback(async (screenId: string) => {
+    const previousBaselines = [...baselines];
+    
+    const optimisticBaseline = baselines.find((b) => b.screenId === screenId);
+    if (!optimisticBaseline) return;
+
+    setBaselines(
+      baselines.map((b) =>
+        b.screenId === screenId
+          ? { ...b, validated: true, statusMessage: undefined, status: "validated" }
+          : b
+      )
+    );
+
     try {
       const response = await backend.baselines.validateBaselineFs({ screenId });
-      alert(response.message);
+      showToast(response.message, "success");
       await fetchBaselines();
     } catch (error) {
       console.error("Validation failed:", error);
+      setBaselines(previousBaselines);
+      showToast("Validation failed", "error");
     }
-  };
+  }, [baselines]);
 
-  const handleDelete = async (screenId: string) => {
+  const handleDelete = useCallback(async (screenId: string) => {
+    const previousBaselines = [...baselines];
+    const deletedBaseline = baselines.find((b) => b.screenId === screenId);
+
+    setBaselines(baselines.filter((b) => b.screenId !== screenId));
+    
+    if (previewDrawer?.baseline.screenId === screenId) {
+      setPreviewDrawer(null);
+    }
+
     try {
       await backend.baselines.deleteBaselineFs({ screenId });
-      await fetchBaselines();
       await fetchGitStatus();
+      showToast(`Deleted baseline: ${deletedBaseline?.name || screenId}`, "success");
     } catch (error) {
       console.error("Delete failed:", error);
+      setBaselines(previousBaselines);
+      showToast("Delete failed", "error");
     }
-  };
+  }, [baselines, previewDrawer]);
 
-  const handleUploadBaselines = async (baselineInputs: BaselineInput[]) => {
+  const handleUploadBaselines = useCallback(async (baselineInputs: BaselineInput[]) => {
+    const previousBaselines = [...baselines];
+    
+    const optimisticBaselines: BaselineMetadata[] = baselineInputs.map((input) => ({
+      screenId: input.screenId,
+      name: input.name,
+      url: input.route,
+      route: input.route,
+      tags: input.tags,
+      viewportWidth: input.viewportWidth,
+      viewportHeight: input.viewportHeight,
+      validated: input.tags.includes("noisy") ? false : true,
+      hasImage: true,
+      hash: "uploading...",
+      size: input.file.size,
+      status: input.tags.includes("noisy") ? "invalid" : "validated",
+      statusMessage: input.tags.includes("noisy") ? "Baseline tagged as 'noisy' requires at least one mask" : undefined,
+      masks: [],
+      thresholds: {},
+    }));
+
+    const existingIds = new Set(baselines.map((b) => b.screenId));
+    const newBaselines = optimisticBaselines.filter((b) => !existingIds.has(b.screenId));
+    const updatedBaselines = baselines.map((b) => {
+      const update = optimisticBaselines.find((opt) => opt.screenId === b.screenId);
+      return update || b;
+    });
+
+    setBaselines([...updatedBaselines, ...newBaselines]);
+
     const baselinesData = await Promise.all(
       baselineInputs.map(async (input) => {
         const reader = new FileReader();
@@ -142,16 +199,26 @@ export function BaselinesPage() {
     );
 
     try {
-      await backend.baselines.uploadMultiFs({ baselines: baselinesData });
+      const response = await backend.baselines.uploadMultiFs({ baselines: baselinesData });
+      
+      if (response.errors.length > 0) {
+        showToast(`Uploaded ${response.uploaded.length} baseline(s) with ${response.errors.length} error(s)`, "warning");
+      } else {
+        showToast(`Successfully uploaded ${response.uploaded.length} baseline(s)`, "success");
+      }
+      
       await fetchBaselines();
       await fetchGitStatus();
     } catch (error) {
       console.error("Upload failed:", error);
+      setBaselines(previousBaselines);
+      showToast("Upload failed", "error");
       throw error;
     }
-  };
+  }, [baselines]);
 
-  const handleImportZip = async (zipFile: File, overwriteExisting: boolean, importPolicy: boolean) => {
+  const handleImportZip = useCallback(async (zipFile: File, overwriteExisting: boolean, importPolicy: boolean) => {
+    const previousBaselines = [...baselines];
     const arrayBuffer = await zipFile.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     const base64 = btoa(String.fromCharCode(...uint8Array));
@@ -164,20 +231,23 @@ export function BaselinesPage() {
       });
 
       if (response.errors.length > 0) {
-        alert(
-          `Import completed with errors:\n${response.errors.map((e) => `${e.screenId || "Unknown"}: ${e.message}`).join("\n")}`
+        showToast(
+          `Imported ${response.imported.length} baseline(s) with ${response.errors.length} error(s)`,
+          "warning"
         );
       } else {
-        alert(`Successfully imported ${response.imported.length} baseline(s)`);
+        showToast(`Successfully imported ${response.imported.length} baseline(s)`, "success");
       }
 
       await fetchBaselines();
       await fetchGitStatus();
     } catch (error) {
       console.error("Import failed:", error);
+      setBaselines(previousBaselines);
+      showToast("Import failed", "error");
       throw error;
     }
-  };
+  }, [baselines]);
 
   const handleExportZip = async () => {
     setExporting(true);
@@ -193,15 +263,16 @@ export function BaselinesPage() {
       link.download = response.filename;
       link.click();
       URL.revokeObjectURL(url);
+      showToast("Baselines exported successfully", "success");
     } catch (error) {
       console.error("Export failed:", error);
-      alert("Failed to export baselines");
+      showToast("Failed to export baselines", "error");
     } finally {
       setExporting(false);
     }
   };
 
-  const handleUpdateMetadata = async (
+  const handleUpdateMetadata = useCallback(async (
     screenId: string,
     updates: {
       masks?: Array<{ type: string; selector?: string; x?: number; y?: number; width?: number; height?: number }>;
@@ -211,6 +282,22 @@ export function BaselinesPage() {
       route?: string;
     }
   ) => {
+    const previousBaselines = [...baselines];
+    const previousDrawer = previewDrawer;
+
+    setBaselines(
+      baselines.map((b) =>
+        b.screenId === screenId ? { ...b, ...updates } : b
+      )
+    );
+
+    if (previewDrawer && previewDrawer.baseline.screenId === screenId) {
+      setPreviewDrawer({
+        ...previewDrawer,
+        baseline: { ...previewDrawer.baseline, ...updates },
+      });
+    }
+
     try {
       await backend.baselines.updateMetadataFs({
         screenId,
@@ -218,21 +305,15 @@ export function BaselinesPage() {
       });
       await fetchBaselines();
       await fetchGitStatus();
-
-      if (previewDrawer && previewDrawer.baseline.screenId === screenId) {
-        const updatedBaseline = baselines.find((b) => b.screenId === screenId);
-        if (updatedBaseline) {
-          setPreviewDrawer({
-            ...previewDrawer,
-            baseline: { ...updatedBaseline, ...updates },
-          });
-        }
-      }
+      showToast("Metadata updated", "success");
     } catch (error) {
       console.error("Failed to update metadata:", error);
+      setBaselines(previousBaselines);
+      setPreviewDrawer(previousDrawer);
+      showToast("Failed to update metadata", "error");
       throw error;
     }
-  };
+  }, [baselines, previewDrawer]);
 
   const stats = {
     total: baselines.length,
@@ -243,6 +324,7 @@ export function BaselinesPage() {
 
   return (
     <div className="p-8">
+      <ToastContainer />
       {gitStatus.baselinesChanged && (
         <div className="mb-6 bg-yellow-500/10 border border-yellow-500 rounded-lg p-4 flex items-start gap-3">
           <GitBranch className="size-5 text-yellow-500 mt-0.5" />
