@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { FileArchive, Upload, AlertTriangle, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { FileArchive, Upload, AlertTriangle, CheckCircle2, XCircle, Loader2, ArrowLeft } from "lucide-react";
 
 interface ImportZipModalProps {
   open: boolean;
@@ -86,6 +86,10 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
         <div className="bg-card border rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={handleClose} disabled={importing}>
+                <ArrowLeft className="size-4" />
+                Back
+              </Button>
               <FileArchive className="size-6 text-primary" />
               <h2 className="text-2xl font-bold text-foreground">Import ZIP</h2>
             </div>
