@@ -1,5 +1,14 @@
 @import "./theme.css";
 
+:root {
+  --muted-foreground: oklch(0.39 0 0);
+  --border: oklch(0.91 0 0);
+  --input: oklch(0.91 0 0);
+  --muted: oklch(0.96 0 0);
+  --accent: oklch(0.96 0 0);
+  --accent-foreground: oklch(0.145 0 0);
+}
+
 .text-primary {
   color: var(--text-primary);
 }
@@ -25,9 +34,9 @@
 }
 
 .text-label {
-  color: hsl(var(--foreground) / 0.78);
+  color: oklch(0.39 0 0);
 }
 
 .text-value {
-  color: hsl(var(--foreground) / 0.92);
+  color: oklch(0.145 0 0);
 }

@@ -3,7 +3,7 @@ import "./index-overrides.css";
 
 export default function App() {
   return (
-    <div className="dark min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <BaselinesPage />
     </div>
   );

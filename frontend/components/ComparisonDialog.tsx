@@ -206,7 +206,7 @@ export function ComparisonDialog({
             <Button
               onClick={handleApprove}
               disabled={processing || approved}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-700 hover:bg-green-800 text-white"
             >
               {processing ? (
                 "Processing..."

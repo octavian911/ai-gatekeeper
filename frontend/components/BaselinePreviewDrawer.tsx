@@ -415,7 +415,7 @@ export function BaselinePreviewDrawer({
           {onDelete && !editing && (
             <Button
               variant="outline"
-              className="w-full text-red-500 border-red-500 hover:bg-red-500 hover:text-white"
+              className="w-full text-red-700 border-red-700 hover:bg-red-700 hover:text-white"
               onClick={() => {
                 if (confirm(`Delete baseline "${baseline.name}"?`)) {
                   onDelete(baseline.screenId);
