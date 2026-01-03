@@ -25,7 +25,7 @@ Note: You only need to review visual diffs. Technical details are handled automa
   };
 
   return (
-    <div className="bg-card border-2 border-border-strong rounded-lg overflow-hidden">
+    <div className="bg-card border-2 border-border-strong rounded-lg overflow-hidden shadow-sm">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-4 py-3 flex items-center justify-between bg-accent/50 hover:bg-accent transition-colors"
@@ -62,7 +62,7 @@ Note: You only need to review visual diffs. Technical details are handled automa
 
       {isExpanded && (
         <div className="p-4 space-y-4">
-          <div className="bg-background rounded-lg p-4 border-2 border-border">
+          <div className="bg-background rounded-lg p-4 border-2 border-border-strong">
             <ol className="space-y-2 text-sm">
               <li className="flex gap-2">
                 <span className="font-semibold min-w-[1.5rem] text-primary">1.</span>
@@ -103,7 +103,7 @@ Note: You only need to review visual diffs. Technical details are handled automa
 
           <button
             onClick={() => setShowMeanings(!showMeanings)}
-            className="w-full text-left px-3 py-2 bg-background border-2 border-border rounded-lg hover:bg-accent/50 transition-colors"
+            className="w-full text-left px-3 py-2 bg-background border-2 border-border-strong rounded-lg hover:bg-accent/50 transition-colors"
           >
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold text-primary">
@@ -118,7 +118,7 @@ Note: You only need to review visual diffs. Technical details are handled automa
           </button>
 
           {showMeanings && (
-            <div className="bg-background border-2 border-border rounded-lg p-4 space-y-3">
+            <div className="bg-background border-2 border-border-strong rounded-lg p-4 space-y-3">
               <div className="flex gap-3">
                 <CheckCircle2 className="size-5 text-green-500 flex-shrink-0 mt-0.5" />
                 <div>

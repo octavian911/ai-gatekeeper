@@ -370,52 +370,57 @@ export function BaselinesPage() {
           </Button>
         </div>
         </div>
-        <ReviewerGuidancePanel />
-      </div>
-
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-card border-2 border-border rounded-lg p-4 hover:border-border-strong transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-secondary">Total</span>
-            <RefreshCw className="size-4 text-icon-muted" />
-          </div>
-          <p className="text-2xl font-bold text-primary">{stats.total}</p>
-        </div>
-        <div className="bg-card border-2 border-border rounded-lg p-4 hover:border-border-strong transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-primary">Validated</span>
-            <CheckCircle2 className="size-4 text-green-500" />
-          </div>
-          <p className="text-2xl font-bold text-foreground">{stats.validated}</p>
-        </div>
-        <div className="bg-card border-2 border-border rounded-lg p-4 hover:border-border-strong transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-primary">Invalid</span>
-            <AlertCircle className="size-4 text-yellow-500" />
-          </div>
-          <p className="text-2xl font-bold text-foreground">{stats.invalid}</p>
-        </div>
-        <div className="bg-card border-2 border-border rounded-lg p-4 hover:border-border-strong transition-colors">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-primary">Missing</span>
-            <XCircle className="size-4 text-red-500" />
-          </div>
-          <p className="text-2xl font-bold text-foreground">{stats.missing}</p>
+        <div className="bg-surface">
+          <ReviewerGuidancePanel />
         </div>
       </div>
 
-      <div className="bg-card border-2 border-border rounded-lg p-4 mb-6">
-        <div className="flex gap-4 items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-icon-muted" />
-            <input
-              type="text"
-              placeholder="Search baselines..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-background border-2 border-border rounded-md text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-border-strong focus:border-border-strong"
-            />
+      <div className="bg-surface p-4 rounded-lg mb-6">
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-card border-2 border-border-strong rounded-lg p-4 hover:shadow-sm transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-secondary">Total</span>
+              <RefreshCw className="size-4 text-icon-muted" />
+            </div>
+            <p className="text-2xl font-bold text-primary">{stats.total}</p>
           </div>
+          <div className="bg-card border-2 border-border-strong rounded-lg p-4 hover:shadow-sm transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-primary">Validated</span>
+              <CheckCircle2 className="size-4 text-green-500" />
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.validated}</p>
+          </div>
+          <div className="bg-card border-2 border-border-strong rounded-lg p-4 hover:shadow-sm transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-primary">Invalid</span>
+              <AlertCircle className="size-4 text-yellow-500" />
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.invalid}</p>
+          </div>
+          <div className="bg-card border-2 border-border-strong rounded-lg p-4 hover:shadow-sm transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-primary">Missing</span>
+              <XCircle className="size-4 text-red-500" />
+            </div>
+            <p className="text-2xl font-bold text-foreground">{stats.missing}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-surface p-4 rounded-lg mb-6">
+        <div className="bg-card border-2 border-border-strong rounded-lg p-4">
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-icon-muted" />
+              <input
+                type="text"
+                placeholder="Search baselines..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-background border-2 border-border-strong rounded-md text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-border-strong transition-all"
+              />
+            </div>
           <div className="flex gap-2">
             <Button
               variant={filterStatus === "all" ? "default" : "outline"}
@@ -448,11 +453,12 @@ export function BaselinesPage() {
               <XCircle />
               Missing
             </Button>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => { fetchBaselines(); fetchGitStatus(); }}>
+              <RefreshCw />
+              Refresh
+            </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => { fetchBaselines(); fetchGitStatus(); }}>
-            <RefreshCw />
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -462,7 +468,7 @@ export function BaselinesPage() {
           <p className="text-secondary">Loading baselines...</p>
         </div>
       ) : stats.total === 0 ? (
-        <div className="text-center py-16 bg-card border-2 border-border rounded-lg">
+        <div className="text-center py-16 bg-card border-2 border-border-strong rounded-lg">
           <Upload className="size-16 mx-auto mb-4 text-icon-muted" />
           <h3 className="text-xl font-semibold text-primary mb-2">No baselines yet</h3>
           <p className="text-secondary mb-6 max-w-md mx-auto">
@@ -478,7 +484,7 @@ export function BaselinesPage() {
               Import ZIP
             </Button>
           </div>
-          <div className="text-sm text-secondary max-w-lg mx-auto mt-6 border-t-2 border-border pt-6">
+          <div className="text-sm text-secondary max-w-lg mx-auto mt-6 border-t-2 border-border-strong pt-6">
             <p className="mb-2 text-secondary">
               <strong className="text-primary">Note:</strong> Baselines are saved to <code className="bg-accent px-1 rounded text-accent-foreground">/baselines</code> and should be committed to git.
             </p>
@@ -505,7 +511,7 @@ export function BaselinesPage() {
       )}
 
       {!loading && filteredBaselines.length === 0 && stats.total > 0 && (
-        <div className="text-center py-12 bg-card border-2 border-border rounded-lg">
+        <div className="text-center py-12 bg-card border-2 border-border-strong rounded-lg">
           <p className="text-secondary">No baselines found matching your filters.</p>
         </div>
       )}

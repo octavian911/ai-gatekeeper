@@ -49,7 +49,7 @@ export function BaselineCard({
   };
 
   return (
-    <div className="border-2 border-border rounded-lg p-4 bg-card hover:border-border-strong hover:shadow-sm transition-all">
+    <div className="border-2 border-border-strong rounded-lg p-4 bg-card hover:border-border-strong hover:shadow-sm transition-all">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h3 className="font-semibold text-value mb-1">{baseline.name}</h3>
@@ -65,7 +65,7 @@ export function BaselineCard({
         {baseline.url && (
           <div className="flex items-center justify-between text-sm">
             <span className="text-label">Route:</span>
-            <code className="text-xs text-value bg-muted/30 border border-border-strong px-2 py-1 rounded max-w-[200px] truncate">{baseline.url}</code>
+            <code className="text-xs text-value bg-muted/30 border border-border px-2 py-1 rounded max-w-[200px] truncate">{baseline.url}</code>
           </div>
         )}
         {baseline.viewportWidth && baseline.viewportHeight && (
@@ -80,7 +80,7 @@ export function BaselineCard({
         </div>
         <div className="flex items-start justify-between text-sm">
           <span className="text-label">Hash:</span>
-          <code className="text-xs text-value bg-muted/30 border border-border-strong px-2 py-1 rounded max-w-[200px] truncate" title={baseline.hash}>
+          <code className="text-xs text-value bg-muted/30 border border-border px-2 py-1 rounded max-w-[200px] truncate" title={baseline.hash}>
             {baseline.hash.slice(0, 12)}...
           </code>
         </div>
@@ -97,7 +97,7 @@ export function BaselineCard({
               {baseline.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs bg-muted/30 text-value border border-border-strong px-2 py-0.5 rounded-full"
+                  className="text-xs bg-muted/30 text-value border border-border px-2 py-0.5 rounded-full"
                 >
                   {tag}
                 </span>
