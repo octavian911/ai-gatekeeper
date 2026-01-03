@@ -5,7 +5,7 @@ import { BaselineUploadModal, BaselineInput } from "../components/BaselineUpload
 import { ImportZipModal } from "../components/ImportZipModal";
 import { BaselinePreviewDrawer } from "../components/BaselinePreviewDrawer";
 import { ReviewerGuidancePanel } from "../components/ReviewerGuidancePanel";
-import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, GitBranch, Download } from "lucide-react";
+import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, GitBranch, Download, Link } from "lucide-react";
 import { Button } from "../components/ui/button";
 import type { BaselineMetadata } from "~backend/baselines/list_fs";
 import { useToast } from "../hooks/useToast";
@@ -276,7 +276,12 @@ export function BaselinesPage() {
   const handleExportZip = async () => {
     setExporting(true);
     try {
-      const response = await backend.baselines.exportZipFs();
+      showToast("Preparing download…", "success");
+      
+      const response = await backend.baselines.exportZipFs({
+        filter: filterStatus !== "all" ? filterStatus : undefined,
+        search: searchQuery || undefined,
+      });
       
       const binaryString = atob(response.zipData);
       const bytes = new Uint8Array(binaryString.length);
@@ -293,7 +298,6 @@ export function BaselinesPage() {
       link.style.display = "none";
       
       document.body.appendChild(link);
-      
       link.click();
       
       setTimeout(() => {
@@ -301,12 +305,33 @@ export function BaselinesPage() {
         URL.revokeObjectURL(url);
       }, 250);
       
-      showToast("Baselines exported successfully", "success");
+      showToast("Download started", "success");
     } catch (error) {
       console.error("Export failed:", error);
-      showToast("Failed to export baselines", "error");
+      showToast("Failed to export baselines. Check console for details.", "error");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleCopyExportLink = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filterStatus !== "all") {
+        params.set("filter", filterStatus);
+      }
+      if (searchQuery) {
+        params.set("search", searchQuery);
+      }
+      const queryString = params.toString();
+      const baseUrl = "https://ai-output-gate-d5c156k82vjumvf6738g.api.lp.dev";
+      const exportUrl = `${baseUrl}/baselines/export-zip-fs${queryString ? `?${queryString}` : ""}`;
+      
+      await navigator.clipboard.writeText(exportUrl);
+      showToast("API link copied. Open in browser to download (returns base64 JSON).", "success");
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+      showToast("Failed to copy link", "error");
     }
   };
 
@@ -405,6 +430,9 @@ export function BaselinesPage() {
           <Button variant="outline" onClick={handleExportZip} disabled={exporting || stats.total === 0}>
             <Download className="size-4" />
             {exporting ? "Exporting..." : "Export ZIP"}
+          </Button>
+          <Button variant="outline" onClick={handleCopyExportLink} disabled={stats.total === 0} title="Copy download link">
+            <Link className="size-4" />
           </Button>
         </div>
         </div>

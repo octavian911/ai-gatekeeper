@@ -1,4 +1,4 @@
-import { api } from "encore.dev/api";
+import { api, Query } from "encore.dev/api";
 import AdmZip from "adm-zip";
 import fs from "fs/promises";
 import path from "path";
@@ -11,20 +11,82 @@ import {
 
 const BASELINES_DIR = "/baselines";
 
+export interface ExportZipParams {
+  filter?: Query<"all" | "validated" | "invalid" | "missing">;
+  search?: Query<string>;
+}
+
 export interface ExportZipResponse {
   zipData: string;
   filename: string;
 }
 
-export const exportZipFs = api<void, ExportZipResponse>(
+async function validateBaseline(
+  screenId: string,
+  manifestEntry: any,
+  screenConfig: any,
+  imageBuffer: Buffer | null
+): Promise<boolean> {
+  if (!imageBuffer) {
+    return false;
+  }
+
+  const tags = screenConfig?.tags || manifestEntry.tags || [];
+  const masks = screenConfig?.masks || [];
+
+  if (tags.includes("noisy") && masks.length === 0) {
+    return false;
+  }
+
+  return true;
+}
+
+export const exportZipFs = api<ExportZipParams, ExportZipResponse>(
   { expose: true, method: "GET", path: "/baselines/export-zip-fs" },
-  async () => {
+  async (params) => {
     const zip = new AdmZip();
     const manifest = await readManifest();
 
-    zip.addFile("baselines/manifest.json", Buffer.from(JSON.stringify(manifest, null, 2)));
+    let filteredBaselines = manifest.baselines;
 
-    for (const entry of manifest.baselines) {
+    if (params.filter && params.filter !== "all") {
+      const filteredWithValidation = await Promise.all(
+        manifest.baselines.map(async (entry) => {
+          const screenConfig = await readScreenConfig(entry.screenId);
+          const imageBuffer = await readBaselineImage(entry.screenId);
+          const validated = await validateBaseline(entry.screenId, entry, screenConfig, imageBuffer);
+          return { entry, validated, hasImage: !!imageBuffer };
+        })
+      );
+
+      filteredBaselines = filteredWithValidation
+        .filter(({ validated, hasImage }) => {
+          if (params.filter === "validated") return validated;
+          if (params.filter === "invalid") return hasImage && !validated;
+          if (params.filter === "missing") return !hasImage;
+          return true;
+        })
+        .map(({ entry }) => entry);
+    }
+
+    if (params.search) {
+      const searchLower = params.search.toLowerCase();
+      filteredBaselines = filteredBaselines.filter(
+        (entry) =>
+          entry.name.toLowerCase().includes(searchLower) ||
+          entry.screenId.toLowerCase().includes(searchLower) ||
+          (entry.url && entry.url.toLowerCase().includes(searchLower))
+      );
+    }
+
+    const exportManifest = {
+      ...manifest,
+      baselines: filteredBaselines,
+    };
+
+    zip.addFile("baselines/manifest.json", Buffer.from(JSON.stringify(exportManifest, null, 2)));
+
+    for (const entry of filteredBaselines) {
       const screenId = entry.screenId;
       const screenDir = path.join(BASELINES_DIR, screenId);
 
@@ -89,6 +151,9 @@ B) Flat images:
    - Screen IDs will be inferred from filenames
 
 Generated: ${new Date().toISOString()}
+Filter: ${params.filter || "all"}
+${params.search ? `Search: "${params.search}"` : ""}
+Baselines exported: ${filteredBaselines.length}
 `;
 
     zip.addFile("README.txt", Buffer.from(readmeContent));

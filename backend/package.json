@@ -12,6 +12,7 @@
     "encore.dev": "^1.53.0"
   },
   "devDependencies": {
+    "adm-zip": "^0.5.16",
     "typescript": "^5.8.3",
     "vitest": "^3.0.9"
   }

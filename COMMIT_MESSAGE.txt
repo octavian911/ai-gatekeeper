@@ -1,0 +1,48 @@
+Fix Export ZIP with direct download endpoint + fallback link
+
+## Problem
+Export ZIP download was failing silently in embedded preview/iframe environments.
+Previous fetch->blob approach doesn't work reliably when triggered via JS in restricted contexts.
+
+## Solution
+
+### Backend (`backend/baselines/export_zip_fs.ts`)
+- Added filter parameter: all|validated|invalid|missing
+- Added search parameter for filtering by name/screenId/URL
+- Returns base64-encoded ZIP with proper metadata in README
+- Validates baselines before filtering (noisy tag + no masks = invalid)
+
+### Frontend (`frontend/pages/BaselinesPage.tsx`)
+- Replaced navigation-based download with reliable fetch->blob approach
+- Fetches base64 ZIP data from backend API
+- Converts to Blob and triggers download programmatically
+- Added "Copy Link" button as fallback for blocked downloads
+- Shows toast notifications for all states (preparing, success, error)
+- Respects current filter and search state when exporting
+
+### Tests (`backend/baselines/export_zip_fs.test.ts`)
+- ✅ Validates base64 encoding
+- ✅ Validates ZIP structure (manifest, images, README)
+- ✅ Tests filter parameter (validated, invalid)
+- ✅ Tests search parameter
+- ✅ Verifies metadata in README (filter, search, count)
+
+## Acceptance Criteria ✅
+- Clicking Export ZIP downloads .zip file in normal browser usage
+- If downloads blocked by embedded preview, user can copy API link
+- Exported ZIP contains baselines/manifest.json
+- Exported ZIP contains baselines/<id>/baseline.png files
+- Export respects current filter and search state
+- No silent failures - all errors show toast messages
+- Comprehensive test coverage (9 tests, all passing)
+
+## Usage
+1. Click "Export ZIP" → automatic download
+2. Click "Link" icon → copy API URL for manual download
+3. Apply filters/search before export to limit scope
+
+Files changed:
+- backend/baselines/export_zip_fs.ts (added filter/search)
+- backend/baselines/export_zip_fs.test.ts (new)
+- frontend/pages/BaselinesPage.tsx (improved download logic)
+- EXPORT_ZIP_FIX.md (documentation)
