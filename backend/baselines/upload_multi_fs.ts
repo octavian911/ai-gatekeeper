@@ -35,6 +35,17 @@ export interface UploadMultiResponse {
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
+function validateImageSignature(buffer: Buffer): boolean {
+  if (buffer.length < 12) return false;
+  
+  const isPNG = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+  const isJPEG = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+  const isWEBP = buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+                 buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+  
+  return isPNG || isJPEG || isWEBP;
+}
+
 export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
   { expose: true, method: "POST", path: "/baselines/upload-multi-fs" },
   async (req) => {
@@ -62,6 +73,14 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
           errors.push({
             screenId: input.screenId,
             message: `File exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`,
+          });
+          continue;
+        }
+
+        if (!validateImageSignature(imageBuffer)) {
+          errors.push({
+            screenId: input.screenId,
+            message: "Expected: Rejected (file signature check), not just extension",
           });
           continue;
         }

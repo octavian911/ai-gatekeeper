@@ -32,6 +32,28 @@ export function BaselineUploadModal({ open, onClose, onUpload, showToast }: Base
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  const validateFileSignature = async (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = (e) => {
+        if (!e.target?.result) {
+          resolve(false);
+          return;
+        }
+        const arr = new Uint8Array(e.target.result as ArrayBuffer).subarray(0, 8);
+        let header = "";
+        for (let i = 0; i < arr.length; i++) {
+          header += arr[i].toString(16).padStart(2, "0");
+        }
+        const isPNG = header.startsWith("89504e47");
+        const isJPEG = header.startsWith("ffd8ff");
+        const isWEBP = header.startsWith("52494646") && header.substring(16, 24) === "57454250";
+        resolve(isPNG || isJPEG || isWEBP);
+      };
+      reader.readAsArrayBuffer(file.slice(0, 12));
+    });
+  };
+
   const handleFilesSelected = async (files: FileList | null) => {
     if (!files) return;
 
@@ -42,7 +64,13 @@ export function BaselineUploadModal({ open, onClose, onUpload, showToast }: Base
       const file = files[i];
 
       if (!file.type.match(/^image\/(png|jpe?g|webp)$/)) {
-        invalidFiles.push(`${file.name}: Only PNG/JPG/JPEG/WEBP files are supported`);
+        invalidFiles.push(`${file.name}: Expected: Rejected (file signature check), not just extension`);
+        continue;
+      }
+
+      const isValidSignature = await validateFileSignature(file);
+      if (!isValidSignature) {
+        invalidFiles.push(`${file.name}: Expected: Rejected (file signature check), not just extension`);
         continue;
       }
 
