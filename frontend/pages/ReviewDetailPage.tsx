@@ -202,11 +202,11 @@ export function ReviewDetailPage() {
 
       <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-4 mb-6">
         <p className="text-lg font-semibold text-blue-700">
-          📋 Verdict: {review.failedScreens > 0 
-            ? `${review.failedScreens} screen${review.failedScreens > 1 ? 's' : ''} changed beyond acceptable limits and ${review.failedScreens > 1 ? 'require' : 'requires'} your approval to update the baseline.`
+          {review.failedScreens > 0 
+            ? `⚠️ ${review.failedScreens} screen${review.failedScreens > 1 ? 's' : ''} changed beyond thresholds — approve to replace baseline or reject to investigate.`
             : review.warnedScreens > 0
-            ? `${review.warnedScreens} minor change${review.warnedScreens > 1 ? 's' : ''} detected within warning thresholds - review recommended but likely safe.`
-            : 'All screens passed - no visual changes detected beyond baseline tolerances.'}
+            ? `✓ ${review.warnedScreens} minor change${review.warnedScreens > 1 ? 's' : ''} within thresholds — review recommended.`
+            : '✓ All screens match baseline — no action needed.'}
         </p>
       </div>
 
@@ -237,7 +237,7 @@ export function ReviewDetailPage() {
               disabled={submitting || !reviewerName.trim()}
               className="bg-orange-600 hover:bg-orange-700 text-white font-semibold"
             >
-              ⚠️ Approve & Replace Official Baseline
+              ⚠️ Approve (Permanent — Replaces Baseline for All)
             </Button>
             <Button
               onClick={handleReject}

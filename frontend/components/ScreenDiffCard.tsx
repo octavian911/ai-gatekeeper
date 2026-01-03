@@ -84,7 +84,6 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
             <span className="text-sm font-mono text-secondary">#{index + 1}</span>
             <h3 className="text-lg font-semibold text-primary">{screen.name}</h3>
             {getStatusBadge()}
-            {getFlakeBadge()}
           </div>
           <div className="flex items-center gap-4">
             {expanded ? (
@@ -188,6 +187,7 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                 <div className="text-xs text-blue-600 mt-1 space-y-1">
                   <div>Similarity: {screen.originalityPercent.toFixed(1)}%</div>
                   <div>Drift: {(100 - screen.originalityPercent).toFixed(1)}%</div>
+                  <div>Flake Status: {getFlakeBadge() || 'Unknown'}</div>
                   {screen.volatileRegionsMasked! > 0 && (
                     <div>{screen.volatileRegionsMasked} volatile region{screen.volatileRegionsMasked! > 1 ? 's' : ''} masked from comparison</div>
                   )}
@@ -253,20 +253,18 @@ export function ScreenDiffCard({ screen, index }: ScreenDiffCardProps) {
                 <div className="space-y-2">
                   {screen.changes.map((change) => {
                     const getImpactDescription = () => {
-                      if (change.changeType === "visual") {
-                        return "Users will see different styling or layout in this area";
-                      } else if (change.changeType === "content") {
-                        return "Users will see different text, wording, or messaging";
-                      } else if (change.changeType === "layout") {
-                        return "Users will see elements in different positions or sizes";
-                      } else if (change.changeType === "color") {
-                        return "Users will see a different color scheme or visual appearance";
-                      } else if (change.changeType === "structure") {
-                        return "Users will see a different component structure or hierarchy";
-                      } else if (change.changeType === "text") {
-                        return "Users will see different text content or labels";
-                      }
-                      return change.description ? `Users will see: ${change.description}` : "Visual difference detected - review image comparison above";
+                      const base = change.description || "Visual difference detected";
+                      const userImpact = (() => {
+                        if (change.changeType === "visual" || change.changeType === "color") {
+                          return "appearance changed";
+                        } else if (change.changeType === "content" || change.changeType === "text") {
+                          return "different text shown to users";
+                        } else if (change.changeType === "layout" || change.changeType === "structure") {
+                          return "page layout modified";
+                        }
+                        return "UI modified";
+                      })();
+                      return `${base} — ${userImpact}`;
                     };
 
                     return (
