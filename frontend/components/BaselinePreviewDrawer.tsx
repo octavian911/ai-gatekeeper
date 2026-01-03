@@ -127,7 +127,7 @@ export function BaselinePreviewDrawer({
 
       <div className="ml-auto relative z-50 bg-background border-l w-full max-w-2xl h-full overflow-y-auto">
         <div className="sticky top-0 bg-background border-b p-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-foreground">{baseline.name}</h2>
+          <h2 className="text-xl font-bold text-primary">{baseline.name}</h2>
           <div className="flex gap-2">
             {!editing && onUpdateMetadata && (
               <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
@@ -146,14 +146,14 @@ export function BaselinePreviewDrawer({
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-2">Metadata</h3>
+            <h3 className="font-semibold text-primary mb-2">Metadata</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Screen ID</span>
-                <span className="text-foreground font-mono">{baseline.screenId}</span>
+                <span className="text-secondary">Screen ID</span>
+                <span className="text-primary font-mono">{baseline.screenId}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Route</span>
+                <span className="text-secondary">Route</span>
                 {editing ? (
                   <Input
                     value={route}
@@ -161,11 +161,11 @@ export function BaselinePreviewDrawer({
                     className="max-w-xs h-8"
                   />
                 ) : (
-                  <span className="text-foreground font-mono">{baseline.url || "—"}</span>
+                  <span className="text-primary font-mono">{baseline.url || "—"}</span>
                 )}
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Viewport</span>
+                <span className="text-secondary">Viewport</span>
                 {editing ? (
                   <div className="flex gap-1">
                     <Input
@@ -174,7 +174,7 @@ export function BaselinePreviewDrawer({
                       onChange={(e) => setViewportWidth(parseInt(e.target.value))}
                       className="w-20 h-8"
                     />
-                    <span className="self-center text-muted-foreground">×</span>
+                    <span className="self-center text-secondary">×</span>
                     <Input
                       type="number"
                       value={viewportHeight}
@@ -183,32 +183,32 @@ export function BaselinePreviewDrawer({
                     />
                   </div>
                 ) : (
-                  <span className="text-foreground">
+                  <span className="text-primary">
                     {baseline.viewportWidth}×{baseline.viewportHeight}
                   </span>
                 )}
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Status</span>
+                <span className="text-secondary">Status</span>
                 <Badge variant={baseline.status === "validated" ? "default" : "outline"}>
                   {baseline.status}
                 </Badge>
               </div>
               {baseline.statusMessage && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Message</span>
-                  <span className="text-foreground text-xs">{baseline.statusMessage}</span>
+                  <span className="text-secondary">Message</span>
+                  <span className="text-primary text-xs">{baseline.statusMessage}</span>
                 </div>
               )}
               {baseline.size && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">File Size</span>
-                  <span className="text-foreground">{(baseline.size / 1024).toFixed(2)} KB</span>
+                  <span className="text-secondary">File Size</span>
+                  <span className="text-primary">{(baseline.size / 1024).toFixed(2)} KB</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Hash</span>
-                <span className="text-foreground font-mono text-xs truncate max-w-xs">
+                <span className="text-secondary">Hash</span>
+                <span className="text-primary font-mono text-xs truncate max-w-xs">
                   {baseline.hash}
                 </span>
               </div>
@@ -216,7 +216,7 @@ export function BaselinePreviewDrawer({
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-2">Tags</h3>
+            <h3 className="font-semibold text-primary mb-2">Tags</h3>
             <div className="flex gap-2 flex-wrap">
               {["standard", "critical", "noisy"].map((tag) => (
                 <span
@@ -225,7 +225,7 @@ export function BaselinePreviewDrawer({
                   className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-md ${
                     tags.includes(tag)
                       ? "bg-primary text-primary-foreground"
-                      : "border border-border text-foreground"
+                      : "border border-border text-primary"
                   } ${editing ? "cursor-pointer hover:bg-accent" : ""}`}
                 >
                   {tag}
@@ -241,7 +241,7 @@ export function BaselinePreviewDrawer({
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-foreground">Masks</h3>
+              <h3 className="font-semibold text-primary">Masks</h3>
               {editing && (
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={addCssMask}>
@@ -256,13 +256,13 @@ export function BaselinePreviewDrawer({
               )}
             </div>
             {masks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No masks configured</p>
+              <p className="text-sm text-secondary">No masks configured</p>
             ) : (
               <div className="space-y-2">
                 {masks.map((mask, idx) => (
                   <div key={idx} className="border rounded p-3 text-sm space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-foreground font-medium">
+                      <span className="text-primary font-medium">
                         {mask.type === "css" ? "CSS Selector" : "Rectangle"}
                       </span>
                       {editing && (
@@ -273,7 +273,7 @@ export function BaselinePreviewDrawer({
                     </div>
                     {mask.type === "css" ? (
                       <div>
-                        <label className="text-xs text-muted-foreground">Selector</label>
+                        <label className="text-xs text-secondary">Selector</label>
                         {editing ? (
                           <Input
                             value={mask.selector || ""}
@@ -282,13 +282,13 @@ export function BaselinePreviewDrawer({
                             className="mt-1"
                           />
                         ) : (
-                          <p className="text-foreground font-mono text-xs mt-1">{mask.selector}</p>
+                          <p className="text-primary font-mono text-xs mt-1">{mask.selector}</p>
                         )}
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-xs text-muted-foreground">X</label>
+                          <label className="text-xs text-secondary">X</label>
                           {editing ? (
                             <Input
                               type="number"
@@ -297,11 +297,11 @@ export function BaselinePreviewDrawer({
                               className="mt-1"
                             />
                           ) : (
-                            <p className="text-foreground mt-1">{mask.x}</p>
+                            <p className="text-primary mt-1">{mask.x}</p>
                           )}
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">Y</label>
+                          <label className="text-xs text-secondary">Y</label>
                           {editing ? (
                             <Input
                               type="number"
@@ -310,11 +310,11 @@ export function BaselinePreviewDrawer({
                               className="mt-1"
                             />
                           ) : (
-                            <p className="text-foreground mt-1">{mask.y}</p>
+                            <p className="text-primary mt-1">{mask.y}</p>
                           )}
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">Width</label>
+                          <label className="text-xs text-secondary">Width</label>
                           {editing ? (
                             <Input
                               type="number"
@@ -323,11 +323,11 @@ export function BaselinePreviewDrawer({
                               className="mt-1"
                             />
                           ) : (
-                            <p className="text-foreground mt-1">{mask.width}</p>
+                            <p className="text-primary mt-1">{mask.width}</p>
                           )}
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground">Height</label>
+                          <label className="text-xs text-secondary">Height</label>
                           {editing ? (
                             <Input
                               type="number"
@@ -338,7 +338,7 @@ export function BaselinePreviewDrawer({
                               className="mt-1"
                             />
                           ) : (
-                            <p className="text-foreground mt-1">{mask.height}</p>
+                            <p className="text-primary mt-1">{mask.height}</p>
                           )}
                         </div>
                       </div>
@@ -350,30 +350,30 @@ export function BaselinePreviewDrawer({
           </div>
 
           <div>
-            <h3 className="font-semibold text-foreground mb-2">Resolved Thresholds</h3>
+            <h3 className="font-semibold text-primary mb-2">Resolved Thresholds</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Warn Pixel Ratio</span>
-                <span className="text-foreground font-mono">
+                <span className="text-secondary">Warn Pixel Ratio</span>
+                <span className="text-primary font-mono">
                   {thresholds.warn.diffPixelRatio.toFixed(4)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Warn Pixels</span>
-                <span className="text-foreground font-mono">{thresholds.warn.diffPixels}</span>
+                <span className="text-secondary">Warn Pixels</span>
+                <span className="text-primary font-mono">{thresholds.warn.diffPixels}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Fail Pixel Ratio</span>
-                <span className="text-foreground font-mono">
+                <span className="text-secondary">Fail Pixel Ratio</span>
+                <span className="text-primary font-mono">
                   {thresholds.fail.diffPixelRatio.toFixed(4)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Fail Pixels</span>
-                <span className="text-foreground font-mono">{thresholds.fail.diffPixels}</span>
+                <span className="text-secondary">Fail Pixels</span>
+                <span className="text-primary font-mono">{thresholds.fail.diffPixels}</span>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="text-xs text-muted mt-2">
               Based on tags: {tags.length > 0 ? tags.join(", ") : "standard (default)"}
             </p>
           </div>

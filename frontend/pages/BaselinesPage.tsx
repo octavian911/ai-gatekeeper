@@ -329,8 +329,8 @@ export function BaselinesPage() {
         <div className="mb-6 bg-yellow-500/10 border border-yellow-500 rounded-lg p-4 flex items-start gap-3">
           <GitBranch className="size-5 text-yellow-500 mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold text-foreground">Baselines changed. Commit these changes to preserve version history.</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="font-semibold text-primary">Baselines changed. Commit these changes to preserve version history.</p>
+            <p className="text-sm text-secondary mt-1">
               {gitStatus.changedFiles.length} file(s) modified in /baselines
             </p>
           </div>
@@ -350,8 +350,8 @@ export function BaselinesPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Baseline Management</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-bold text-primary mb-2">Baseline Management</h1>
+            <p className="text-secondary">
               Upload, validate, and manage visual regression test baselines.
             </p>
           </div>
@@ -376,28 +376,28 @@ export function BaselinesPage() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <RefreshCw className="size-4 text-muted-foreground" />
+            <span className="text-sm text-secondary">Total</span>
+            <RefreshCw className="size-4 text-icon-muted" />
           </div>
-          <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+          <p className="text-2xl font-bold text-primary">{stats.total}</p>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-white">Validated</span>
+            <span className="text-sm text-primary">Validated</span>
             <CheckCircle2 className="size-4 text-green-500" />
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.validated}</p>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-white">Invalid</span>
+            <span className="text-sm text-primary">Invalid</span>
             <AlertCircle className="size-4 text-yellow-500" />
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.invalid}</p>
         </div>
         <div className="bg-card border rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-white">Missing</span>
+            <span className="text-sm text-primary">Missing</span>
             <XCircle className="size-4 text-red-500" />
           </div>
           <p className="text-2xl font-bold text-foreground">{stats.missing}</p>
@@ -407,13 +407,13 @@ export function BaselinesPage() {
       <div className="bg-card border rounded-lg p-4 mb-6">
         <div className="flex gap-4 items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-icon-muted" />
             <input
               type="text"
               placeholder="Search baselines..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-background border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full pl-10 pr-4 py-2 bg-background border rounded-md text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <div className="flex gap-2">
@@ -458,14 +458,14 @@ export function BaselinesPage() {
 
       {loading ? (
         <div className="text-center py-12">
-          <RefreshCw className="size-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Loading baselines...</p>
+          <RefreshCw className="size-8 animate-spin mx-auto mb-4 text-icon-muted" />
+          <p className="text-secondary">Loading baselines...</p>
         </div>
       ) : stats.total === 0 ? (
         <div className="text-center py-16 bg-card border rounded-lg">
-          <Upload className="size-16 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-xl font-semibold text-foreground mb-2">No baselines yet</h3>
-          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+          <Upload className="size-16 mx-auto mb-4 text-icon-muted" />
+          <h3 className="text-xl font-semibold text-primary mb-2">No baselines yet</h3>
+          <p className="text-secondary mb-6 max-w-md mx-auto">
             Upload baseline images or import a ZIP containing your baselines to get started.
           </p>
           <div className="flex gap-3 justify-center mb-4">
@@ -478,12 +478,12 @@ export function BaselinesPage() {
               Import ZIP
             </Button>
           </div>
-          <div className="text-sm text-muted-foreground max-w-lg mx-auto mt-6 border-t border-border pt-6">
-            <p className="mb-2 text-muted-foreground">
-              <strong className="text-foreground">Note:</strong> Baselines are saved to <code className="bg-accent px-1 rounded text-accent-foreground">/baselines</code> and should be committed to git.
+          <div className="text-sm text-secondary max-w-lg mx-auto mt-6 border-t border-border pt-6">
+            <p className="mb-2 text-secondary">
+              <strong className="text-primary">Note:</strong> Baselines are saved to <code className="bg-accent px-1 rounded text-accent-foreground">/baselines</code> and should be committed to git.
             </p>
-            <p className="font-semibold mb-2 mt-4 text-foreground">Supported workflows:</p>
-            <ul className="text-left space-y-1 text-muted-foreground">
+            <p className="font-semibold mb-2 mt-4 text-primary">Supported workflows:</p>
+            <ul className="text-left space-y-1 text-secondary">
               <li>• Upload Images: PNG, JPG, JPEG, WEBP (max 5MB each)</li>
               <li>• Import ZIP: baselines/manifest.json structure</li>
               <li>• Infer screen IDs from filenames</li>
@@ -506,7 +506,7 @@ export function BaselinesPage() {
 
       {!loading && filteredBaselines.length === 0 && stats.total > 0 && (
         <div className="text-center py-12 bg-card border rounded-lg">
-          <p className="text-muted-foreground">No baselines found matching your filters.</p>
+          <p className="text-secondary">No baselines found matching your filters.</p>
         </div>
       )}
 

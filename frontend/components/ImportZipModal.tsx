@@ -91,7 +91,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                 Back
               </Button>
               <FileArchive className="size-6 text-primary" />
-              <h2 className="text-2xl font-bold text-foreground">Import ZIP</h2>
+              <h2 className="text-2xl font-bold text-primary">Import ZIP</h2>
             </div>
             <Button variant="ghost" size="sm" onClick={handleClose} disabled={importing}>
               ✕
@@ -108,11 +108,11 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                 dragActive ? "border-primary bg-primary/10" : "border-border"
               }`}
             >
-              <FileArchive className="size-16 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-lg font-semibold text-foreground mb-2">
+              <FileArchive className="size-16 mx-auto mb-4 text-icon-muted" />
+              <p className="text-lg font-semibold text-primary mb-2">
                 Drop ZIP file here or click to browse
               </p>
-              <p className="text-sm text-muted-foreground mb-4">
+              <p className="text-sm text-secondary mb-4">
                 Accepts .zip files up to 50MB
               </p>
               <input
@@ -142,8 +142,8 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                   <div className="flex items-center gap-3">
                     <FileArchive className="size-5 text-primary" />
                     <div>
-                      <p className="font-semibold text-foreground">{zipFile.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-semibold text-primary">{zipFile.name}</p>
+                      <p className="text-sm text-secondary">
                         {(zipFile.size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
@@ -154,7 +154,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                 </div>
 
                 {validating && (
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="flex items-center gap-2 text-secondary">
                     <Loader2 className="size-4 animate-spin" />
                     <span>Validating ZIP structure...</span>
                   </div>
@@ -162,7 +162,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
 
                 {validationSummary && !validating && (
                   <div className="space-y-3 mt-4">
-                    <h3 className="font-semibold text-foreground">Validation Summary</h3>
+                    <h3 className="font-semibold text-primary">Validation Summary</h3>
                     
                     {validationSummary.error ? (
                       <div className="flex items-center gap-2 text-red-500">
@@ -177,7 +177,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                           ) : (
                             <AlertTriangle className="size-4 text-yellow-500" />
                           )}
-                          <span className="text-sm text-foreground">
+                          <span className="text-sm text-primary">
                             {validationSummary.hasManifest
                               ? "manifest.json found"
                               : "No manifest.json (will infer from images)"}
@@ -186,7 +186,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
 
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="size-4 text-green-500" />
-                          <span className="text-sm text-foreground">
+                          <span className="text-sm text-primary">
                             {validationSummary.screenCount} screen(s) detected
                           </span>
                         </div>
@@ -194,7 +194,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                         {validationSummary.hasPolicyFile && (
                           <div className="flex items-center gap-2">
                             <CheckCircle2 className="size-4 text-green-500" />
-                            <span className="text-sm text-foreground">
+                            <span className="text-sm text-primary">
                               .gate/policy.json found
                             </span>
                           </div>
@@ -204,10 +204,10 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                           <div className="flex items-start gap-2">
                             <AlertTriangle className="size-4 text-yellow-500 mt-0.5" />
                             <div className="text-sm">
-                              <span className="text-foreground font-semibold">
+                              <span className="text-primary font-semibold">
                                 Missing baseline images:
                               </span>
-                              <div className="text-muted-foreground mt-1">
+                              <div className="text-secondary mt-1">
                                 {validationSummary.missingImages.join(", ")}
                               </div>
                             </div>
@@ -228,7 +228,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                     className="size-4"
                     disabled={importing}
                   />
-                  <span className="text-sm text-foreground">
+                  <span className="text-sm text-primary">
                     Overwrite existing baselines (default: skip duplicates)
                   </span>
                 </label>
@@ -242,7 +242,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
                       className="size-4"
                       disabled={importing}
                     />
-                    <span className="text-sm text-foreground">
+                    <span className="text-sm text-primary">
                       Import .gate/policy.json (org-wide defaults)
                     </span>
                   </label>
@@ -273,7 +273,7 @@ export function ImportZipModal({ open, onClose, onImport }: ImportZipModalProps)
             </>
           )}
 
-          <div className="mt-6 text-sm text-muted-foreground border-t pt-4">
+          <div className="mt-6 text-sm text-secondary border-t pt-4">
             <p className="font-semibold mb-2">Expected ZIP structure:</p>
             <pre className="bg-background p-3 rounded text-xs">
 {`baselines/

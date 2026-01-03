@@ -32,11 +32,11 @@ Note: You only need to review visual diffs. Technical details are handled automa
       >
         <div className="flex items-center gap-2">
           {isExpanded ? (
-            <ChevronDown className="size-4 text-muted-foreground" />
+            <ChevronDown className="size-4 text-icon-muted" />
           ) : (
-            <ChevronRight className="size-4 text-muted-foreground" />
+            <ChevronRight className="size-4 text-icon-muted" />
           )}
-          <h3 className="font-semibold text-foreground">Review Evidence (for non-technical reviewers)</h3>
+          <h3 className="font-semibold text-primary">Review Evidence (for non-technical reviewers)</h3>
         </div>
         <Button
           variant="outline"
@@ -65,28 +65,28 @@ Note: You only need to review visual diffs. Technical details are handled automa
           <div className="bg-background rounded-lg p-4 border">
             <ol className="space-y-2 text-sm">
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem] text-foreground">1.</span>
-                <span className="text-foreground">Open the Pull Request in GitHub</span>
+                <span className="font-semibold min-w-[1.5rem] text-primary">1.</span>
+                <span className="text-primary">Open the Pull Request in GitHub</span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem] text-foreground">2.</span>
-                <span className="text-foreground">Go to the <strong>"Checks"</strong> tab</span>
+                <span className="font-semibold min-w-[1.5rem] text-primary">2.</span>
+                <span className="text-primary">Go to the <strong>"Checks"</strong> tab</span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem] text-foreground">3.</span>
-                <span className="text-foreground">Download the test artifacts (look for visual regression results)</span>
+                <span className="font-semibold min-w-[1.5rem] text-primary">3.</span>
+                <span className="text-primary">Download the test artifacts (look for visual regression results)</span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem] text-foreground">4.</span>
-                <span className="text-foreground">Extract the ZIP and open <code className="bg-accent px-1 rounded text-foreground">report.html</code></span>
+                <span className="font-semibold min-w-[1.5rem] text-primary">4.</span>
+                <span className="text-primary">Extract the ZIP and open <code className="bg-accent px-1 rounded text-foreground">report.html</code></span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem] text-foreground">5.</span>
-                <span className="text-foreground">Review all <strong>FAIL</strong> and <strong>WARN</strong> diffs carefully</span>
+                <span className="font-semibold min-w-[1.5rem] text-primary">5.</span>
+                <span className="text-primary">Review all <strong>FAIL</strong> and <strong>WARN</strong> diffs carefully</span>
               </li>
               <li className="flex gap-2">
-                <span className="font-semibold min-w-[1.5rem] text-foreground">6.</span>
-                <span className="text-foreground">
+                <span className="font-semibold min-w-[1.5rem] text-primary">6.</span>
+                <span className="text-primary">
                   If changes are intentional: add label{" "}
                   <code className="bg-accent px-1 rounded font-semibold text-foreground">approve-baseline</code> in GitHub
                 </span>
@@ -95,7 +95,7 @@ Note: You only need to review visual diffs. Technical details are handled automa
           </div>
 
           <div className="text-sm bg-muted/30 p-3 rounded-lg">
-            <p className="text-foreground">
+            <p className="text-primary">
               <strong>Note:</strong> You only need to review visual diffs. Technical details are handled
               automatically.
             </p>
@@ -106,13 +106,13 @@ Note: You only need to review visual diffs. Technical details are handled automa
             className="w-full text-left px-3 py-2 bg-background border rounded-lg hover:bg-accent/50 transition-colors"
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-foreground">
+              <span className="text-sm font-semibold text-primary">
                 Understanding Test Results
               </span>
               {showMeanings ? (
-                <ChevronDown className="size-4 text-muted-foreground" />
+                <ChevronDown className="size-4 text-icon-muted" />
               ) : (
-                <ChevronRight className="size-4 text-muted-foreground" />
+                <ChevronRight className="size-4 text-icon-muted" />
               )}
             </div>
           </button>
@@ -122,8 +122,8 @@ Note: You only need to review visual diffs. Technical details are handled automa
               <div className="flex gap-3">
                 <CheckCircle2 className="size-5 text-green-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-semibold text-foreground mb-1">PASS</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <h4 className="font-semibold text-primary mb-1">PASS</h4>
+                  <p className="text-sm text-secondary">
                     Screenshot matches baseline within acceptable thresholds. No action needed.
                   </p>
                 </div>
@@ -131,8 +131,8 @@ Note: You only need to review visual diffs. Technical details are handled automa
               <div className="flex gap-3">
                 <AlertCircle className="size-5 text-yellow-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-semibold text-foreground mb-1">WARN</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <h4 className="font-semibold text-primary mb-1">WARN</h4>
+                  <p className="text-sm text-secondary">
                     Minor differences detected. Review the diff image to determine if intentional.
                   </p>
                 </div>
@@ -140,8 +140,8 @@ Note: You only need to review visual diffs. Technical details are handled automa
               <div className="flex gap-3">
                 <XCircle className="size-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-semibold text-foreground mb-1">FAIL</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <h4 className="font-semibold text-primary mb-1">FAIL</h4>
+                  <p className="text-sm text-secondary">
                     Significant differences found. Always review carefully before approving.
                   </p>
                 </div>

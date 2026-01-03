@@ -185,7 +185,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <Upload className="size-6 text-primary" />
-              <h2 className="text-2xl font-bold text-foreground">Upload Images</h2>
+              <h2 className="text-2xl font-bold text-primary">Upload Images</h2>
             </div>
             <Button variant="ghost" size="sm" onClick={handleClose} disabled={uploading}>
               ✕
@@ -201,9 +201,9 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
               dragActive ? "border-primary bg-primary/10" : "border-border"
             }`}
           >
-            <Upload className="size-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-foreground mb-2">Drag & drop images here</p>
-            <p className="text-sm text-muted-foreground mb-4">
+            <Upload className="size-12 mx-auto mb-4 text-icon-muted" />
+            <p className="text-primary mb-2">Drag & drop images here</p>
+            <p className="text-sm text-secondary mb-4">
               Supports: PNG, JPG, JPEG, WEBP (max 5MB each)
             </p>
             <input
@@ -286,7 +286,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
                       />
                       <div className="flex-1 grid grid-cols-2 gap-2">
                         <div>
-                          <label className="text-xs text-muted-foreground font-medium">
+                          <label className="text-xs text-secondary font-medium">
                             Screen ID *
                           </label>
                           <Input
@@ -298,7 +298,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground font-medium">Name</label>
+                          <label className="text-xs text-secondary font-medium">Name</label>
                           <Input
                             value={baseline.name}
                             onChange={(e) => updateBaseline(baseline.id, { name: e.target.value })}
@@ -306,7 +306,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground font-medium">Route</label>
+                          <label className="text-xs text-secondary font-medium">Route</label>
                           <Input
                             value={baseline.route}
                             onChange={(e) => updateBaseline(baseline.id, { route: e.target.value })}
@@ -314,7 +314,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
                           />
                         </div>
                         <div>
-                          <label className="text-xs text-muted-foreground font-medium">
+                          <label className="text-xs text-secondary font-medium">
                             Viewport
                           </label>
                           <div className="flex gap-1 mt-1">
@@ -328,7 +328,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
                               }
                               className="w-24"
                             />
-                            <span className="text-muted-foreground self-center">×</span>
+                            <span className="text-secondary self-center">×</span>
                             <Input
                               type="number"
                               value={baseline.viewportHeight}
@@ -342,7 +342,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
                           </div>
                         </div>
                         <div className="col-span-2">
-                          <label className="text-xs text-muted-foreground font-medium">Tags</label>
+                          <label className="text-xs text-secondary font-medium">Tags</label>
                           <div className="flex gap-2 mt-1">
                             {["standard", "critical", "noisy"].map((tag) => (
                               <span
@@ -350,7 +350,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
                                 className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-md cursor-pointer ${
                                   baseline.tags.includes(tag)
                                     ? "bg-primary text-primary-foreground"
-                                    : "border border-border text-foreground hover:bg-accent"
+                                    : "border border-border text-primary hover:bg-accent"
                                 }`}
                                 onClick={() => toggleTag(baseline.id, tag)}
                               >
@@ -364,7 +364,7 @@ export function BaselineUploadModal({ open, onClose, onUpload }: BaselineUploadM
                         <X className="size-4" />
                       </Button>
                     </div>
-                    <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground ml-24">
+                    <div className="flex items-center justify-between mt-2 text-xs text-secondary ml-24">
                       <span>
                         Detected: {baseline.width}×{baseline.height}px
                       </span>

@@ -52,8 +52,8 @@ export function BaselineCard({
     <div className="border rounded-lg p-4 bg-card hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-foreground mb-1">{baseline.name}</h3>
-          <p className="text-sm text-muted-foreground">{baseline.screenId}</p>
+          <h3 className="font-semibold text-primary mb-1">{baseline.name}</h3>
+          <p className="text-sm text-secondary">{baseline.screenId}</p>
         </div>
         <div className="flex items-center gap-2">
           {getStatusIcon()}
@@ -64,22 +64,22 @@ export function BaselineCard({
       <div className="space-y-2 mb-4">
         {baseline.url && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Route:</span>
+            <span className="text-secondary">Route:</span>
             <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate">{baseline.url}</code>
           </div>
         )}
         {baseline.viewportWidth && baseline.viewportHeight && (
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Viewport:</span>
-            <span className="text-foreground">{baseline.viewportWidth}×{baseline.viewportHeight}</span>
+            <span className="text-secondary">Viewport:</span>
+            <span className="text-primary">{baseline.viewportWidth}×{baseline.viewportHeight}</span>
           </div>
         )}
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Size:</span>
-          <span className="text-foreground">{formatSize(baseline.size)}</span>
+          <span className="text-secondary">Size:</span>
+          <span className="text-primary">{formatSize(baseline.size)}</span>
         </div>
         <div className="flex items-start justify-between text-sm">
-          <span className="text-muted-foreground">Hash:</span>
+          <span className="text-secondary">Hash:</span>
           <code className="text-xs bg-muted px-2 py-1 rounded max-w-[200px] truncate" title={baseline.hash}>
             {baseline.hash.slice(0, 12)}...
           </code>
@@ -87,12 +87,12 @@ export function BaselineCard({
         {baseline.statusMessage && (
           <div className="flex items-start gap-2 text-sm">
             <AlertCircle className="size-3 text-yellow-500 mt-0.5 flex-shrink-0" />
-            <span className="text-muted-foreground text-xs">{baseline.statusMessage}</span>
+            <span className="text-secondary text-xs">{baseline.statusMessage}</span>
           </div>
         )}
         {baseline.tags && baseline.tags.length > 0 && (
           <div className="flex items-start gap-2 text-sm">
-            <span className="text-muted-foreground">Tags:</span>
+            <span className="text-secondary">Tags:</span>
             <div className="flex flex-wrap gap-1">
               {baseline.tags.map((tag) => (
                 <span
@@ -129,7 +129,7 @@ export function BaselineCard({
             </Button>
           </>
         ) : (
-          <div className="text-sm text-muted-foreground text-center py-2 flex-1">
+          <div className="text-sm text-secondary text-center py-2 flex-1">
             No baseline image found
           </div>
         )}
