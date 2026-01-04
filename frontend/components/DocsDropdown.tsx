@@ -2,8 +2,9 @@ import { useNavigate } from "react-router-dom";
 import { BookOpen, FileText, GitFork, ExternalLink } from "lucide-react";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "./ui/dropdown-menu";
+import { LINKS } from "@/lib/constants";
 
-const TEMPLATE_REPO_URL = "https://github.com/leap-ai/ai-gatekeeper";
+const TEMPLATE_REPO_URL = LINKS.templateRepo;
 
 export function DocsDropdown() {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ export function DocsDropdown() {
         </DropdownMenuItem>
         {isTemplateRepoConfigured ? (
           <DropdownMenuItem asChild>
-            <a href={TEMPLATE_REPO_URL} target="_blank" rel="noreferrer noopener" className="flex items-center gap-2 w-full">
+            <a href={TEMPLATE_REPO_URL} target="_blank" rel="noreferrer" className="flex items-center gap-2 w-full">
               <GitFork className="size-4" />
               <span>Template repo</span>
               <ExternalLink className="size-3 ml-auto text-muted-foreground" />
