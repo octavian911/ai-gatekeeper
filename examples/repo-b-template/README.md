@@ -1,142 +1,137 @@
-# AI Gatekeeper - Customer Template Repository
+# AI Gatekeeper - Next.js Template
 
-This is a standalone Next.js application demonstrating how to integrate AI Gatekeeper for visual regression testing in a customer repository.
+**A ready-to-use Next.js template with AI Gatekeeper visual regression testing pre-configured.**
 
-## Overview
+[![Use this template](https://img.shields.io/badge/Use%20this%20template-2ea44f?style=for-the-badge)](https://github.com/AI-Gatekeeper/ai-gate-template-nextjs/generate)
 
-This template includes:
-- A Next.js app with two routes (`/login` and `/pricing`)
-- Baseline screenshots for visual regression testing
-- GitHub Actions workflow for automated CI testing
-- Configuration for AI Gatekeeper
+This template demonstrates how to integrate AI Gatekeeper into your Next.js project for automated visual regression testing in CI/CD.
 
-## Prerequisites
+## What's Included
 
-- Node.js 20+ and npm
-- Chromium browser (auto-installed by Playwright)
-
-## Installation
-
-AI Gatekeeper can be installed in three ways:
-
-### MODE A: Published Package (Recommended)
-
-When `ai-gate` is published to npm:
-
-```bash
-npm install -D @ai-gate/cli
-```
-
-Then run:
-
-```bash
-npx ai-gate run --baseURL http://localhost:3000
-```
-
-### MODE B: GitHub Release (Pre-release/Testing)
-
-Install directly from GitHub Releases:
-
-```bash
-# Install latest release
-npm install -D https://github.com/YOUR-ORG/ai-gatekeeper/releases/latest/download/ai-gate-cli-1.0.0.tgz
-
-# Or install specific version
-npm install -D https://github.com/YOUR-ORG/ai-gatekeeper/releases/download/v1.0.0/ai-gate-cli-1.0.0.tgz
-```
-
-> **Note:** Check the [Releases page](https://github.com/YOUR-ORG/ai-gatekeeper/releases) for available versions and tarball names.
-
-Then run:
-
-```bash
-npx ai-gate run --baseURL http://localhost:3000
-```
-
-### MODE C: Local TGZ (Development)
-
-When testing local changes before release:
-
-**Step 1:** Build and pack the CLI from the main repository root:
-
-```bash
-# From the ai-gatekeeper repository root
-cd packages/cli
-npm run build
-npm pack
-```
-
-This creates a tarball: `ai-gate-cli-<version>.tgz`
-
-**Step 2:** Install the tarball in this template:
-
-```bash
-# From examples/repo-b-template
-npm install -D ../../packages/cli/ai-gate-cli-<version>.tgz
-```
-
-**Step 3:** Run AI Gatekeeper:
-
-```bash
-npx ai-gate run --baseURL http://localhost:3000
-```
-
-**Expected Output:**
-```
-AI Gatekeeper v1.0.0
-Running visual regression tests...
-✓ login passed
-✓ pricing passed
-All 2 screens passed
-```
+- ✅ Next.js app with sample pages (`/login` and `/pricing`)
+- ✅ Baseline screenshots for visual testing
+- ✅ GitHub Actions workflow configured
+- ✅ AI Gatekeeper configuration
+- ✅ Scripts to test and demonstrate failures
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1️⃣ Use This Template
+
+Click **"Use this template"** above or visit:
+```
+https://github.com/AI-Gatekeeper/ai-gate-template-nextjs/generate
+```
+
+Clone your new repository:
+```bash
+git clone https://github.com/YOUR-USERNAME/YOUR-REPO-NAME.git
+cd YOUR-REPO-NAME
+```
+
+### 2️⃣ Install Dependencies
 
 ```bash
 npm ci
+npx playwright install chromium --with-deps
 ```
 
-### 2. Build the Application
+### 3️⃣ Build the Application
 
 ```bash
 npm run build
 ```
 
-### 3. Run Visual Regression Tests
-
-Use the deterministic runner script:
+### 4️⃣ Run Visual Tests Locally
 
 ```bash
 npm run test:visual
 ```
 
-This will:
-1. Check if port 3000 is available (kill process if needed)
-2. Start the Next.js server in background
-3. Wait for `http://localhost:3000` to be ready
-4. Run AI Gatekeeper
-5. Stop the server automatically
-6. Exit with appropriate code (0 = pass, 1 = fail)
+**Expected output:**
+```
+✓ login passed
+✓ pricing passed
+All 2 screens passed
+```
 
-**Manual Alternative:**
+This script:
+- Starts the Next.js server on port 3000
+- Waits for the server to be ready
+- Runs AI Gatekeeper visual tests
+- Stops the server automatically
+- Exits with code 0 (pass) or 1 (fail)
 
-If you prefer to manage the server yourself:
+## Test a Failure
+
+To see AI Gatekeeper catch a visual regression:
+
+### Option 1: Use the Break Script
 
 ```bash
-# Terminal 1: Start the server
-npm start
-
-# Terminal 2: Run AI Gatekeeper
-npx ai-gate run --baseURL http://localhost:3000
+./scripts/break-ui.sh
+npm run test:visual
 ```
 
-### 4. View Results
-
-Evidence artifacts are generated at:
+**Expected output:**
 ```
-.ai-gate/evidence/
+✗ login failed: Visual differences detected
+Evidence: .ai-gate/evidence/login/diff.png
+```
+
+Inspect `.ai-gate/evidence/login/` to see:
+- `baseline.png` - Original screenshot
+- `current.png` - New screenshot with changes
+- `diff.png` - Highlighted differences
+
+Restore the UI:
+```bash
+./scripts/restore-ui.sh
+```
+
+### Option 2: Manual Change
+
+Edit `app/login/page.tsx` and change the button text on line 71-75:
+
+```tsx
+// BEFORE:
+Sign in
+
+// AFTER:
+Log In Now
+```
+
+Then run:
+```bash
+npm run test:visual
+```
+
+AI Gatekeeper will detect the text change and fail the test.
+
+## GitHub Actions Integration
+
+This template includes `.github/workflows/ai-gate.yml` which:
+
+1. ✅ Runs on every pull request
+2. ✅ Builds the Next.js app
+3. ✅ Starts the server and runs visual tests
+4. ✅ Uploads evidence artifacts (always, even on failure)
+
+**No secrets or API keys required.**
+
+### How to View Evidence in GitHub
+
+When a test fails in CI:
+
+1. Go to the **Actions** tab in your repository
+2. Click on the failed workflow run
+3. Scroll to **Artifacts** section
+4. Download `ai-gate-evidence`
+5. Extract and inspect the diff images
+
+The artifact contains:
+```
+ai-gate-evidence/
 ├── login/
 │   ├── baseline.png
 │   ├── current.png
@@ -145,31 +140,6 @@ Evidence artifacts are generated at:
     ├── baseline.png
     ├── current.png
     └── diff.png
-```
-
-## Directory Structure
-
-```
-.
-├── app/
-│   ├── layout.tsx          # Root layout
-│   ├── login/
-│   │   └── page.tsx        # Login page
-│   └── pricing/
-│       └── page.tsx        # Pricing page
-├── baselines/
-│   ├── manifest.json       # Screen configurations
-│   ├── login/
-│   │   └── baseline.png    # Login baseline image
-│   └── pricing/
-│       └── baseline.png    # Pricing baseline image
-├── scripts/
-│   └── run-visual-test.sh  # Deterministic test runner
-├── .github/
-│   └── workflows/
-│       └── ai-gate.yml     # CI workflow
-├── ai-gate.config.json     # AI Gatekeeper configuration
-└── package.json
 ```
 
 ## Configuration
@@ -190,199 +160,111 @@ Evidence artifacts are generated at:
 }
 ```
 
+- **baselineDir**: Where baseline images are stored
+- **outputDir**: Where evidence artifacts are saved
+- **viewport**: Browser dimensions for screenshots
+- **threshold**: Pixel difference tolerance (0.001 = 0.1%)
+
 ### baselines/manifest.json
 
-Defines two screens:
-- **login** - Authentication form at `/login`
-- **pricing** - Pricing tiers at `/pricing`
+Defines the screens to test:
 
-Each screen specifies:
-- `id`: Unique identifier
-- `route`: URL path
-- `viewport`: Screen dimensions (1280x720)
-- `tags`: Categorization tags
-- `description`: Human-readable description
-
-## GitHub Actions Integration
-
-The `.github/workflows/ai-gate.yml` workflow:
-
-1. Checks out code
-2. Sets up Node.js 20
-3. Installs dependencies with `npm ci`
-4. Installs Chromium browser
-5. Builds the Next.js app
-6. Starts the server in background
-7. Waits for server to be ready (using `wait-on`)
-8. Runs AI Gatekeeper
-9. Uploads evidence artifacts (always, even on failure)
-
-**No secrets or environment variables required.**
-
-The workflow uses `wait-on` to ensure the server is fully started before running tests, preventing race conditions.
-
-## Testing CI Failures
-
-### Intentional Failure Demo
-
-To demonstrate AI Gatekeeper catching visual regressions:
-
-1. **Break the UI**: Edit `app/login/page.tsx` line 71-75 and change the button text:
-
-```tsx
-// BEFORE:
-Sign in
-
-// AFTER:
-Log In Now
+```json
+{
+  "baselines": [
+    {
+      "screenId": "login",
+      "name": "Login Page",
+      "url": "/login",
+      "viewport": { "width": 1280, "height": 720 },
+      "tags": ["auth", "critical"],
+      "description": "User authentication form"
+    },
+    {
+      "screenId": "pricing",
+      "name": "Pricing Page", 
+      "url": "/pricing",
+      "viewport": { "width": 1280, "height": 720 },
+      "tags": ["marketing"],
+      "description": "Product pricing tiers"
+    }
+  ]
+}
 ```
 
-2. **Run tests locally**:
+## Directory Structure
 
-```bash
-npm run test:visual
+```
+.
+├── .github/
+│   └── workflows/
+│       └── ai-gate.yml           # CI workflow
+├── app/
+│   ├── layout.tsx                # Root layout
+│   ├── login/
+│   │   └── page.tsx              # Login page
+│   └── pricing/
+│       └── page.tsx              # Pricing page
+├── baselines/
+│   ├── manifest.json             # Screen definitions
+│   ├── login/
+│   │   └── baseline.png          # Login baseline
+│   └── pricing/
+│       └── baseline.png          # Pricing baseline
+├── scripts/
+│   ├── break-ui.sh               # Intentionally break UI
+│   ├── restore-ui.sh             # Restore original UI
+│   └── run-visual-test.sh        # Deterministic test runner
+├── ai-gate.config.json           # AI Gatekeeper config
+├── package.json
+├── next.config.js
+└── tsconfig.json
 ```
 
-Expected output:
-```
-✗ login failed: Visual differences detected
-Exit code: 1
-Evidence: .ai-gate/evidence/login/diff.png
-```
+## Customizing for Your Project
 
-3. **Commit and push**:
+### Add More Pages
 
-```bash
-git add app/login/page.tsx
-git commit -m "Change login button text"
-git push
-```
+1. Create new pages in `app/`
+2. Add entries to `baselines/manifest.json`
+3. Generate baseline screenshots:
+   ```bash
+   npm run build
+   npm start &
+   npx ai-gate baseline --baseURL http://localhost:3000
+   ```
+4. Commit the new baseline images
 
-4. **Observe CI Failure**:
-   - GitHub Actions workflow will fail
-   - Exit code will be non-zero
-   - Evidence artifacts will show:
-     - `baseline.png` - Original button with "Sign in"
-     - `current.png` - New button with "Log In Now"
-     - `diff.png` - Highlighted differences
+### Adjust Thresholds
 
-5. **View Evidence**:
-   - Go to Actions tab in GitHub
-   - Click on the failed workflow run
-   - Download the `ai-gate-evidence` artifact
-   - Inspect the diff images
+If you're getting false positives (tests failing when nothing visually changed):
 
-### Other Breaking Changes to Test
-
-**Login Page (`app/login/page.tsx`)**:
-- Line 35: Change `padding: '48px'` to `padding: '24px'` (smaller card)
-- Line 44: Change `fontSize: '28px'` to `fontSize: '32px'` (larger heading)
-- Line 125: Change button `background: '#667eea'` to `background: '#ff0000'` (red button)
-
-**Pricing Page (`app/pricing/page.tsx`)**:
-- Line 24: Change `fontSize: '48px'` to `fontSize: '36px'` (smaller heading)
-- Line 87: Change `$29` to `$39` (price change)
-- Line 161: Change `$79` to `$99` (price change)
-
-Each change will trigger a CI failure with visual evidence.
-
-## 5-Step Dogfood Procedure (Fresh Clone)
-
-Starting from a clean environment:
-
-### Step 1: Clone and Navigate
-
-```bash
-git clone <repo-url>
-cd <repo-name>/examples/repo-b-template
+Edit `ai-gate.config.json`:
+```json
+{
+  "threshold": {
+    "pixelDiffRatio": 0.005  // Increase tolerance (0.5%)
+  }
+}
 ```
 
-### Step 2: Install Dependencies
+### Change Viewport
 
-```bash
-npm ci
-npx playwright install chromium --with-deps
-```
-
-### Step 3: Install AI Gatekeeper
-
-Choose MODE A, MODE B, or MODE C from the Installation section above.
-
-For MODE B (GitHub Release):
-```bash
-npm install -D https://github.com/YOUR-ORG/ai-gatekeeper/releases/latest/download/ai-gate-cli-1.0.0.tgz
-```
-
-For MODE C (local TGZ):
-```bash
-# From main repo root
-cd packages/cli
-npm run build
-npm pack
-cd ../../examples/repo-b-template
-npm install -D ../../packages/cli/ai-gate-cli-*.tgz
-```
-
-### Step 4: Build App
-
-```bash
-npm run build
-```
-
-### Step 5: Run Visual Tests (Passing)
-
-```bash
-npm run test:visual
-```
-
-Expected output:
-```
-Checking if port 3000 is available...
-Starting Next.js server...
-Waiting for http://localhost:3000...
-Running AI Gatekeeper...
-✓ login passed
-✓ pricing passed
-All 2 screens passed
-Stopping server...
-```
-
-Exit code: `0`
-
-### Step 6: Break UI and Re-run (Failing)
-
-Use the provided scripts:
-
-```bash
-# Break the UI
-./scripts/break-ui.sh
-
-# Run tests again
-npm run test:visual
-```
-
-Expected output:
-```
-...
-✗ login failed: Visual differences detected
-Evidence: .ai-gate/evidence/login/diff.png
-Exit code: 1
-```
-
-Inspect `.ai-gate/evidence/` to see baseline/current/diff images.
-
-```bash
-# Restore the UI
-./scripts/restore-ui.sh
+Edit `ai-gate.config.json` to test different screen sizes:
+```json
+{
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  }
+}
 ```
 
 ## Troubleshooting
 
-### Port Already in Use
+### Port 3000 Already in Use
 
-The `test:visual` script automatically handles this by killing existing processes on port 3000.
-
-If you need to manually free the port:
+The test script automatically kills processes on port 3000. To manually free it:
 
 ```bash
 lsof -ti:3000 | xargs kill -9
@@ -392,7 +274,6 @@ Or use a different port:
 
 ```bash
 PORT=3001 npm start &
-npx wait-on http://localhost:3001 --timeout 60000
 npx ai-gate run --baseURL http://localhost:3001
 ```
 
@@ -402,29 +283,36 @@ npx ai-gate run --baseURL http://localhost:3001
 npx playwright install chromium --with-deps
 ```
 
-### Build Failures
-
-Ensure Node.js 20+ is installed:
-
-```bash
-node --version  # Should be v20.x or higher
-```
-
 ### Server Timeout
 
-If `wait-on` times out, increase the timeout in the script:
+If the server takes longer to start, increase the timeout in `scripts/run-visual-test.sh`:
 
 ```bash
 npx wait-on http://localhost:3000 --timeout 120000  # 2 minutes
 ```
 
-## Next Steps
+### Tests Pass Locally But Fail in CI
 
-1. **Customize routes**: Add more pages in `app/`
-2. **Add baselines**: Update `baselines/manifest.json` and generate new baseline images
-3. **Adjust thresholds**: Modify `ai-gate.config.json` pixel diff tolerance
-4. **Integrate with PR workflow**: Use GitHub Actions to block merges on visual regressions
+Check for dynamic content:
+- Timestamps
+- Random data
+- Animation frames
+- External API responses
+
+Use masks to ignore dynamic regions (see AI Gatekeeper documentation).
+
+## Learn More
+
+- [AI Gatekeeper Documentation](https://github.com/AI-Gatekeeper/ai-gatekeeper)
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Playwright Documentation](https://playwright.dev)
 
 ## Support
 
-For issues or questions about AI Gatekeeper, see the main repository documentation.
+For issues with:
+- **This template**: [Open an issue](https://github.com/AI-Gatekeeper/ai-gate-template-nextjs/issues)
+- **AI Gatekeeper**: [Main repo issues](https://github.com/AI-Gatekeeper/ai-gatekeeper/issues)
+
+## License
+
+MIT License - See LICENSE file for details
