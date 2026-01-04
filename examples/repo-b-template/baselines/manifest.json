@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "screens": [
+    {
+      "id": "login",
+      "name": "Login Page",
+      "route": "/login",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "tags": ["auth", "critical"],
+      "description": "User authentication login form"
+    },
+    {
+      "id": "pricing",
+      "name": "Pricing Page",
+      "route": "/pricing",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "tags": ["marketing", "conversion"],
+      "description": "Product pricing tiers and plans"
+    }
+  ]
+}
