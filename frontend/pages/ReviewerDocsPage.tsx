@@ -1,9 +1,19 @@
-import { CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export function ReviewerDocsPage() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <button
+          onClick={() => navigate("/baselines")}
+          className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-950 rounded px-2 py-1"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Baselines</span>
+        </button>
         <h1 className="text-4xl font-bold text-white mb-6">Reviewer Guide</h1>
         <p className="text-lg text-gray-300 mb-8">
           How to review visual diffs and understand AI Gatekeeper results
