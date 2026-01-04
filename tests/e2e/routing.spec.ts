@@ -43,14 +43,16 @@ test.describe("SPA Routing", () => {
     await expect(page).toHaveURL("/");
   });
 
-  test("unknown routes like /random should redirect to /", async ({ page }) => {
+  test("unknown routes like /random should show 404 without changing URL", async ({ page }) => {
     await page.goto("/random");
     
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/random");
+    await expect(page.locator("h1")).toContainText("404");
     
     await page.reload();
     
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/random");
+    await expect(page.locator("h1")).toContainText("404");
   });
 
   test("API routes should not be affected by SPA fallback", async ({ page }) => {
@@ -85,5 +87,16 @@ test.describe("SPA Routing", () => {
 
     await page.goForward();
     await expect(page).toHaveURL("/baselines");
+  });
+
+  test("static assets should load normally without rewrite", async ({ page }) => {
+    const response = await page.goto("/");
+    expect(response?.status()).toBe(200);
+    
+    const cssRequests = page.waitForResponse(response => 
+      response.url().includes(".css") && response.status() === 200
+    );
+    
+    await cssRequests;
   });
 });
