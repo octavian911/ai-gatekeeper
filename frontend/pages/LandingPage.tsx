@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CheckCircle, FileText, Play } from "lucide-react";
+import { CheckCircle, FileText, Play, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function LandingPage() {
@@ -17,6 +17,23 @@ export function LandingPage() {
             Visual regression testing that catches unintended UI changes from AI-generated code.
             Deterministic screenshots, pixel-diff analysis, and actionable evidence for QA reviewers.
           </p>
+        </div>
+
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-gradient-to-r from-blue-900 to-blue-800 border border-blue-600 rounded-lg p-8 text-center">
+            <div className="flex items-center justify-center mb-4">
+              <FolderOpen className="w-10 h-10 text-blue-300 mr-3" />
+              <h2 className="text-3xl font-bold text-white">Open App</h2>
+            </div>
+            <p className="text-blue-100 mb-6 text-lg">
+              View and manage your visual regression baselines
+            </p>
+            <Link to="/baselines">
+              <Button className="bg-white text-blue-900 hover:bg-blue-50 font-bold px-8 py-6 text-lg">
+                Go to Baseline Management
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-16">
