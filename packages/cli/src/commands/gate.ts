@@ -15,6 +15,8 @@ import {
 } from '@ai-gate/core';
 import { loadConfig } from '../config.js';
 import { runCommand } from './run.js';
+import { detectGitHubContext, postOrUpdatePRComment } from '../github.js';
+import { formatPRSummary, computeRunStatus, computeWorstSimilarity, type PRSummaryData } from '../pr-summary.js';
 
 export const gateCommand = new Command('gate')
   .description('Run visual regression gate and generate evidence packs')
@@ -122,6 +124,41 @@ gateCommand
       console.log(`  ${chalk.green('Passed')}: ${result.passedRoutes}`);
       console.log(`  ${chalk.red('Failed')}: ${result.failedRoutes}`);
       console.log(`\n  Report: ${chalk.cyan(path.join(runDir, 'report.html'))}`);
+
+      const githubContext = detectGitHubContext();
+      if (githubContext) {
+        try {
+          const worstSimilarity = computeWorstSimilarity(comparisons);
+          const status = computeRunStatus(result.passedRoutes, 0, result.failedRoutes);
+
+          const summaryData: PRSummaryData = {
+            status,
+            totalScreens: result.totalRoutes,
+            passedScreens: result.passedRoutes,
+            warnedScreens: 0,
+            failedScreens: result.failedRoutes,
+            worstSimilarity,
+            artifactPath: runDir,
+          };
+
+          const markdown = formatPRSummary(summaryData);
+          await postOrUpdatePRComment(githubContext, markdown);
+          console.log(chalk.green('\n✓ Posted summary to PR comment'));
+        } catch (error) {
+          console.log(chalk.yellow('\n⚠ Could not post PR comment (continuing):'));
+          console.log(chalk.yellow(`  ${error instanceof Error ? error.message : 'Unknown error'}`));
+          
+          const worstSimilarity = computeWorstSimilarity(comparisons);
+          const status = computeRunStatus(result.passedRoutes, 0, result.failedRoutes);
+          
+          console.log(chalk.bold('\n📊 Summary (for CI logs):'));
+          console.log(`  Status: ${status}`);
+          console.log(`  Total: ${result.totalRoutes}`);
+          console.log(`  Passed: ${result.passedRoutes}`);
+          console.log(`  Failed: ${result.failedRoutes}`);
+          console.log(`  Worst Similarity: ${(worstSimilarity * 100).toFixed(2)}%`);
+        }
+      }
 
       if (!result.passed) {
         process.exit(1);
