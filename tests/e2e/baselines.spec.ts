@@ -137,6 +137,11 @@ test.describe("Baselines E2E Tests", () => {
     const downloadContentType = downloadResponse.headers()["content-type"];
     expect(downloadContentType).toContain("application/zip");
     
+    const contentDisposition = downloadResponse.headers()["content-disposition"];
+    expect(contentDisposition).toBeDefined();
+    expect(contentDisposition).toContain("attachment");
+    expect(contentDisposition).toContain(".zip");
+    
     const contentLength = downloadResponse.headers()["content-length"];
     expect(contentLength).toBeDefined();
     expect(parseInt(contentLength || "0")).toBeGreaterThan(0);

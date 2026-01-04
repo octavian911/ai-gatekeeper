@@ -174,12 +174,18 @@ Baselines exported: ${filteredBaselines.length}
 
     await exportZips.upload(objectName, zipBuffer, {
       contentType: "application/zip",
-    });
+      contentDisposition: `attachment; filename="${filename}"`,
+    } as any);
 
     const ttl = 600;
-    const { url: downloadUrl } = await exportZips.signedDownloadUrl(objectName, {
+    let { url: downloadUrl } = await exportZips.signedDownloadUrl(objectName, {
       ttl,
     });
+    
+    // Add Content-Disposition as query parameter for cloud provider override
+    const urlObj = new URL(downloadUrl);
+    urlObj.searchParams.set('response-content-disposition', `attachment; filename="${filename}"`);
+    downloadUrl = urlObj.toString();
 
     const expiresAt = new Date(now.getTime() + ttl * 1000).toISOString();
 

@@ -77,8 +77,16 @@ curl -I "$(curl -s https://ai-output-gate-d5c156k82vjumvf6738g.api.lp.dev/baseli
 # Expected headers:
 HTTP/2 200
 content-type: application/zip
+content-disposition: attachment; filename="baselines-export-20260104-1425.zip"
 content-length: <positive number>
-# Note: Content-Disposition may vary by cloud provider but should trigger download
+
+# Example output showing Content-Disposition:
+# HTTP/2 200 
+# content-type: application/zip
+# content-disposition: attachment; filename="baselines-export-20260104-1425.zip"
+# content-length: 12345
+# etag: "abc123..."
+# last-modified: Sat, 04 Jan 2026 14:25:30 GMT
 
 # Download and verify ZIP structure
 curl -s "$(curl -s https://ai-output-gate-d5c156k82vjumvf6738g.api.lp.dev/baselines/export.zip | jq -r '.downloadUrl')" -o /tmp/test-export.zip
@@ -108,6 +116,7 @@ unzip -p /tmp/test-export.zip baselines/manifest.json | jq .
 
 **Expected Security Properties:**
 - ✅ Content-Type: application/zip preserved
+- ✅ Content-Disposition: attachment; filename="baselines-export-YYYYMMDD-HHMM.zip"
 - ✅ Content-Length > 0
 - ✅ ZIP file opens successfully
 - ✅ baselines/manifest.json exists at expected path
