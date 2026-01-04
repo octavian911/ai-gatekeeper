@@ -1,9 +1,18 @@
 import { test, expect } from '../src/index.js';
 import { deterministicGoto, deterministicScreenshot } from '../src/index.js';
+import { startTestServer, stopTestServer, getTestUrl } from './test-server.js';
+
+test.beforeAll(async () => {
+  await startTestServer();
+});
+
+test.afterAll(async () => {
+  await stopTestServer();
+});
 
 test.describe('Deterministic Page Plugin', () => {
   test('should freeze time to a fixed date', async ({ deterministicPage }) => {
-    await deterministicGoto(deterministicPage, 'http://localhost:8765');
+    await deterministicGoto(deterministicPage, getTestUrl());
     
     const timeText = await deterministicPage.locator('#time').textContent();
     expect(timeText).toBe('2024-01-15T12:00:00.000Z');
@@ -15,7 +24,7 @@ test.describe('Deterministic Page Plugin', () => {
   });
 
   test('should disable animations', async ({ deterministicPage }) => {
-    await deterministicGoto(deterministicPage, 'http://localhost:8765');
+    await deterministicGoto(deterministicPage, getTestUrl());
     
     const animatedBox = deterministicPage.locator('.animated-box');
     await expect(animatedBox).toBeVisible();
@@ -31,7 +40,7 @@ test.describe('Deterministic Page Plugin', () => {
     const screenshots: Buffer[] = [];
     
     for (let i = 0; i < 3; i++) {
-      await deterministicGoto(deterministicPage, 'http://localhost:8765');
+      await deterministicGoto(deterministicPage, getTestUrl());
       const screenshot = await deterministicScreenshot(deterministicPage);
       screenshots.push(screenshot);
       
@@ -46,7 +55,7 @@ test.describe('Deterministic Page Plugin', () => {
   });
 
   test('should wait for layout stability', async ({ deterministicPage }) => {
-    await deterministicGoto(deterministicPage, 'http://localhost:8765');
+    await deterministicGoto(deterministicPage, getTestUrl());
     
     const content = deterministicPage.locator('#content');
     await expect(content).toHaveClass(/loaded/);
@@ -71,7 +80,7 @@ test.describe('Custom allowed domains', () => {
   });
 
   test('should allow requests to localhost', async ({ deterministicPage }) => {
-    await deterministicGoto(deterministicPage, 'http://localhost:8765');
+    await deterministicGoto(deterministicPage, getTestUrl());
     await expect(deterministicPage.locator('h1')).toHaveText('Deterministic Test Page');
   });
 });

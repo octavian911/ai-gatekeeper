@@ -16,9 +16,4 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  webServer: {
-    command: 'cd tests/fixtures && npx http-server -p 8765',
-    port: 8765,
-    reuseExistingServer: !process.env.CI,
-  },
 });
