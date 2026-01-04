@@ -8,6 +8,8 @@ export interface PRSummaryData {
   failedScreens: number;
   worstSimilarity: number;
   artifactPath?: string;
+  runId?: string;
+  commitSha?: string;
 }
 
 export function formatPRSummary(data: PRSummaryData): string {
@@ -23,6 +25,19 @@ export function formatPRSummary(data: PRSummaryData): string {
     `## ${statusEmoji} Visual Regression Gate: ${statusText}`,
     '',
   ];
+
+  if (data.runId || data.commitSha) {
+    lines.push('### Run Information');
+    lines.push('');
+    if (data.runId) {
+      lines.push(`- **Run ID**: \`${data.runId}\``);
+    }
+    if (data.commitSha) {
+      const shortSha = data.commitSha.substring(0, 7);
+      lines.push(`- **Commit**: \`${shortSha}\``);
+    }
+    lines.push('');
+  }
 
   lines.push('### Summary');
   lines.push('');
@@ -46,12 +61,16 @@ export function formatPRSummary(data: PRSummaryData): string {
     lines.push(`- **Worst Similarity**: ${similarityPercent}%`);
   }
 
-  if (data.artifactPath) {
-    lines.push('');
-    lines.push('### Evidence');
-    lines.push('');
-    lines.push(`Evidence artifacts are available at: \`${data.artifactPath}\``);
-  }
+  lines.push('');
+  lines.push('### Where to Find Evidence Artifacts');
+  lines.push('');
+  lines.push('To view detailed comparison images and reports:');
+  lines.push('');
+  lines.push('1. Go to the **Checks** tab on this PR');
+  lines.push('2. Click on the workflow job that ran the visual tests');
+  lines.push('3. Scroll to the **Artifacts** section');
+  lines.push('4. Download the `ai-gate-evidence` artifact');
+  lines.push('5. Unzip and open `report.html` to review all comparisons');
 
   return lines.join('\n');
 }

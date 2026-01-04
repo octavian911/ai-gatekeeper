@@ -55,12 +55,22 @@ export function detectGitHubContext(): GitHubContext | null {
   };
 }
 
+const COMMENT_MARKER = '<!-- ai-gatekeeper-summary -->';
+
+export interface Comment {
+  id: number;
+  body: string;
+}
+
+export function findExistingComment(comments: Comment[]): Comment | undefined {
+  return comments.find((c) => c.body?.includes(COMMENT_MARKER));
+}
+
 export async function postOrUpdatePRComment(
   context: GitHubContext,
   body: string
 ): Promise<void> {
-  const commentMarker = '<!-- ai-gate-summary -->';
-  const bodyWithMarker = `${commentMarker}\n${body}`;
+  const bodyWithMarker = `${COMMENT_MARKER}\n${body}`;
 
   const apiUrl = `https://api.github.com/repos/${context.owner}/${context.repo}/issues/${context.pullNumber}/comments`;
 
@@ -73,14 +83,22 @@ export async function postOrUpdatePRComment(
     });
 
     if (!listResponse.ok) {
-      throw new Error(`Failed to list comments: ${listResponse.statusText}`);
+      if (listResponse.status === 403) {
+        throw new Error(
+          'Permission denied. This may occur when the PR is from a fork. ' +
+          'Grant write permissions to GITHUB_TOKEN or check workflow permissions.'
+        );
+      }
+      if (listResponse.status === 404) {
+        throw new Error(
+          'PR not found. This may occur when the PR is from a fork without read access.'
+        );
+      }
+      throw new Error(`Failed to list comments: ${listResponse.status} ${listResponse.statusText}`);
     }
 
-    const comments = (await listResponse.json()) as Array<{
-      id: number;
-      body: string;
-    }>;
-    const existingComment = comments.find((c) => c.body?.includes(commentMarker));
+    const comments = (await listResponse.json()) as Comment[];
+    const existingComment = findExistingComment(comments);
 
     if (existingComment) {
       const updateUrl = `https://api.github.com/repos/${context.owner}/${context.repo}/issues/comments/${existingComment.id}`;
@@ -95,7 +113,12 @@ export async function postOrUpdatePRComment(
       });
 
       if (!updateResponse.ok) {
-        throw new Error(`Failed to update comment: ${updateResponse.statusText}`);
+        if (updateResponse.status === 403) {
+          throw new Error(
+            'Permission denied when updating comment. This may occur when the PR is from a fork.'
+          );
+        }
+        throw new Error(`Failed to update comment: ${updateResponse.status} ${updateResponse.statusText}`);
       }
     } else {
       const createResponse = await fetch(apiUrl, {
@@ -109,7 +132,12 @@ export async function postOrUpdatePRComment(
       });
 
       if (!createResponse.ok) {
-        throw new Error(`Failed to create comment: ${createResponse.statusText}`);
+        if (createResponse.status === 403) {
+          throw new Error(
+            'Permission denied when creating comment. This may occur when the PR is from a fork.'
+          );
+        }
+        throw new Error(`Failed to create comment: ${createResponse.status} ${createResponse.statusText}`);
       }
     }
   } catch (error) {

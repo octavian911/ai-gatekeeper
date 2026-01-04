@@ -139,24 +139,42 @@ gateCommand
             failedScreens: result.failedRoutes,
             worstSimilarity,
             artifactPath: runDir,
+            runId,
+            commitSha: githubContext.sha,
           };
 
           const markdown = formatPRSummary(summaryData);
           await postOrUpdatePRComment(githubContext, markdown);
           console.log(chalk.green('\n✓ Posted summary to PR comment'));
         } catch (error) {
-          console.log(chalk.yellow('\n⚠ Could not post PR comment (continuing):'));
-          console.log(chalk.yellow(`  ${error instanceof Error ? error.message : 'Unknown error'}`));
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const isForkOrPermissionError = errorMessage.includes('Permission denied') || 
+                                          errorMessage.includes('fork') ||
+                                          errorMessage.includes('not found');
+          
+          if (isForkOrPermissionError) {
+            console.log(chalk.yellow('\n⚠ Unable to post PR comment'));
+            console.log(chalk.yellow('  Reason: PR may be from a fork or workflow lacks comment permissions'));
+            console.log(chalk.yellow('  Tip: Grant write permissions to GITHUB_TOKEN in workflow file'));
+            console.log(chalk.yellow('  Gate will continue - check Artifacts for evidence\n'));
+          } else {
+            console.log(chalk.yellow('\n⚠ Could not post PR comment (continuing):'));
+            console.log(chalk.yellow(`  ${errorMessage}`));
+          }
           
           const worstSimilarity = computeWorstSimilarity(comparisons);
           const status = computeRunStatus(result.passedRoutes, 0, result.failedRoutes);
           
           console.log(chalk.bold('\n📊 Summary (for CI logs):'));
+          console.log(`  Run ID: ${runId}`);
+          console.log(`  Commit: ${githubContext.sha.substring(0, 7)}`);
           console.log(`  Status: ${status}`);
           console.log(`  Total: ${result.totalRoutes}`);
           console.log(`  Passed: ${result.passedRoutes}`);
           console.log(`  Failed: ${result.failedRoutes}`);
           console.log(`  Worst Similarity: ${(worstSimilarity * 100).toFixed(2)}%`);
+          console.log(chalk.bold('\n📦 Evidence Location:'));
+          console.log('  Checks tab → Workflow job → Artifacts → Download ai-gate-evidence');
         }
       }
 
