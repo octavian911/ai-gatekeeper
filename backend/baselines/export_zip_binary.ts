@@ -8,10 +8,9 @@ import {
   readScreenConfig,
   readBaselineImage,
   readPolicy,
+  getBaselinesDir,
 } from "./filesystem";
 import { exportZips } from "./storage";
-
-const BASELINES_DIR = "/baselines";
 
 export interface ExportZipBinaryParams {
   filter?: Query<"all" | "validated" | "invalid" | "missing">;
@@ -91,7 +90,7 @@ export const exportZipBinary = api<ExportZipBinaryParams, ExportZipBinaryRespons
 
     for (const entry of filteredBaselines) {
       const screenId = entry.screenId;
-      const screenDir = path.join(BASELINES_DIR, screenId);
+      const screenDir = path.join(getBaselinesDir(), screenId);
 
       const imageBuffer = await readBaselineImage(screenId);
       if (imageBuffer) {

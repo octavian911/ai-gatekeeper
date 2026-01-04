@@ -3,16 +3,32 @@ import path from "path";
 import crypto from "crypto";
 import { z } from "zod";
 
-const DEFAULT_BASELINES_DIR = path.resolve(process.cwd(), "baselines");
-
-export const BASELINES_DIR = process.env.AI_GATE_BASELINES_DIR
-  ? path.resolve(process.env.AI_GATE_BASELINES_DIR)
-  : DEFAULT_BASELINES_DIR;
-
-const MANIFEST_PATH = path.join(BASELINES_DIR, "manifest.json");
-const MANIFEST_BACKUP_DIR = path.join(BASELINES_DIR, ".backups");
-const POLICY_PATH = "/.gate/policy.json";
 const MAX_BACKUPS = 5;
+const POLICY_PATH = "/.gate/policy.json";
+
+export function getBaselinesDir(): string {
+  let resolved: string;
+  
+  if (process.env.AI_GATE_BASELINES_DIR) {
+    resolved = path.resolve(process.env.AI_GATE_BASELINES_DIR);
+  } else {
+    resolved = path.join(process.cwd(), ".ai-gate", "baselines");
+  }
+  
+  if (resolved === "/baselines" || resolved.startsWith("/baselines/")) {
+    resolved = path.join(process.cwd(), ".ai-gate", "baselines");
+  }
+  
+  return resolved;
+}
+
+function getManifestPath(): string {
+  return path.join(getBaselinesDir(), "manifest.json");
+}
+
+function getManifestBackupDir(): string {
+  return path.join(getBaselinesDir(), ".backups");
+}
 
 export interface ManifestBaseline {
   screenId: string;
@@ -63,10 +79,11 @@ export interface ScreenConfig {
 }
 
 export async function ensureBaselinesDir(): Promise<void> {
+  const dir = getBaselinesDir();
   try {
-    await fs.access(BASELINES_DIR);
+    await fs.access(dir);
   } catch {
-    await fs.mkdir(BASELINES_DIR, { recursive: true });
+    await fs.mkdir(dir, { recursive: true });
   }
 }
 
@@ -81,7 +98,8 @@ function deduplicateBaselines(baselines: ManifestBaseline[]): ManifestBaseline[]
 export async function readManifest(): Promise<Manifest> {
   try {
     await ensureBaselinesDir();
-    const data = await fs.readFile(MANIFEST_PATH, "utf-8");
+    const manifestPath = getManifestPath();
+    const data = await fs.readFile(manifestPath, "utf-8");
     const parsed = JSON.parse(data);
     
     const validation = validateManifest(parsed);
@@ -102,23 +120,26 @@ export async function readManifest(): Promise<Manifest> {
 }
 
 async function ensureBackupDir(): Promise<void> {
+  const backupDir = getManifestBackupDir();
   try {
-    await fs.access(MANIFEST_BACKUP_DIR);
+    await fs.access(backupDir);
   } catch {
-    await fs.mkdir(MANIFEST_BACKUP_DIR, { recursive: true });
+    await fs.mkdir(backupDir, { recursive: true });
   }
 }
 
 async function rotateBackups(): Promise<void> {
   await ensureBackupDir();
   
+  const backupDir = getManifestBackupDir();
+  
   try {
-    const files = await fs.readdir(MANIFEST_BACKUP_DIR);
+    const files = await fs.readdir(backupDir);
     const backups = files
       .filter(f => f.startsWith("manifest.") && f.endsWith(".backup.json"))
       .map(f => ({
         name: f,
-        path: path.join(MANIFEST_BACKUP_DIR, f),
+        path: path.join(backupDir, f),
       }));
     
     const stats = await Promise.all(
@@ -142,6 +163,10 @@ async function rotateBackups(): Promise<void> {
 export async function writeManifest(manifest: Manifest): Promise<void> {
   await ensureBaselinesDir();
   
+  const manifestPath = getManifestPath();
+  const backupDir = getManifestBackupDir();
+  const baselinesDir = getBaselinesDir();
+  
   manifest.baselines = deduplicateBaselines(manifest.baselines);
   
   const validation = validateManifest(manifest);
@@ -150,25 +175,26 @@ export async function writeManifest(manifest: Manifest): Promise<void> {
   }
   
   try {
-    await fs.access(MANIFEST_PATH);
+    await fs.access(manifestPath);
     await ensureBackupDir();
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const backupPath = path.join(MANIFEST_BACKUP_DIR, `manifest.${timestamp}.backup.json`);
-    await fs.copyFile(MANIFEST_PATH, backupPath);
+    const backupPath = path.join(backupDir, `manifest.${timestamp}.backup.json`);
+    await fs.copyFile(manifestPath, backupPath);
     await rotateBackups();
     
-    const lastBackupPath = path.join(BASELINES_DIR, "manifest.backup.json");
-    await fs.copyFile(MANIFEST_PATH, lastBackupPath).catch(() => {});
+    const lastBackupPath = path.join(baselinesDir, "manifest.backup.json");
+    await fs.copyFile(manifestPath, lastBackupPath).catch(() => {});
   } catch {}
   
-  const tempPath = `${MANIFEST_PATH}.tmp`;
+  const tempPath = `${manifestPath}.tmp`;
   await fs.writeFile(tempPath, JSON.stringify(manifest, null, 2), "utf-8");
-  await fs.rename(tempPath, MANIFEST_PATH);
+  await fs.rename(tempPath, manifestPath);
 }
 
 export async function readScreenConfig(screenId: string): Promise<ScreenConfig | null> {
   try {
-    const configPath = path.join(BASELINES_DIR, screenId, "screen.json");
+    const baselinesDir = getBaselinesDir();
+    const configPath = path.join(baselinesDir, screenId, "screen.json");
     const data = await fs.readFile(configPath, "utf-8");
     return JSON.parse(data);
   } catch {
@@ -177,14 +203,16 @@ export async function readScreenConfig(screenId: string): Promise<ScreenConfig |
 }
 
 export async function writeScreenConfig(screenId: string, config: ScreenConfig): Promise<void> {
-  const screenDir = path.join(BASELINES_DIR, screenId);
+  const baselinesDir = getBaselinesDir();
+  const screenDir = path.join(baselinesDir, screenId);
   await fs.mkdir(screenDir, { recursive: true });
   const configPath = path.join(screenDir, "screen.json");
   await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
 }
 
 export async function readBaselineImage(screenId: string): Promise<Buffer | null> {
-  const screenDir = path.join(BASELINES_DIR, screenId);
+  const baselinesDir = getBaselinesDir();
+  const screenDir = path.join(baselinesDir, screenId);
   const extensions = ["png", "jpg", "jpeg", "webp"];
   
   for (const ext of extensions) {
@@ -198,14 +226,16 @@ export async function readBaselineImage(screenId: string): Promise<Buffer | null
 }
 
 export async function writeBaselineImage(screenId: string, imageBuffer: Buffer): Promise<void> {
-  const screenDir = path.join(BASELINES_DIR, screenId);
+  const baselinesDir = getBaselinesDir();
+  const screenDir = path.join(baselinesDir, screenId);
   await fs.mkdir(screenDir, { recursive: true });
   const imagePath = path.join(screenDir, "baseline.png");
   await fs.writeFile(imagePath, imageBuffer);
 }
 
 export async function deleteBaseline(screenId: string): Promise<void> {
-  const screenDir = path.join(BASELINES_DIR, screenId);
+  const baselinesDir = getBaselinesDir();
+  const screenDir = path.join(baselinesDir, screenId);
   try {
     await fs.rm(screenDir, { recursive: true, force: true });
   } catch (error) {
@@ -218,7 +248,8 @@ export async function getImageHash(imageBuffer: Buffer): Promise<string> {
 }
 
 export async function getImageMtime(screenId: string): Promise<Date | null> {
-  const screenDir = path.join(BASELINES_DIR, screenId);
+  const baselinesDir = getBaselinesDir();
+  const screenDir = path.join(baselinesDir, screenId);
   const extensions = ["png", "jpg", "jpeg", "webp"];
   
   for (const ext of extensions) {

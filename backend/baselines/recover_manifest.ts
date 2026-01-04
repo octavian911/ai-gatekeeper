@@ -1,12 +1,19 @@
 import fs from "fs/promises";
 import path from "path";
 import { api } from "encore.dev/api";
-import { validateManifest } from "./filesystem";
+import { validateManifest, getBaselinesDir } from "./filesystem";
 
-const BASELINES_DIR = "/baselines";
-const MANIFEST_PATH = path.join(BASELINES_DIR, "manifest.json");
-const MANIFEST_BACKUP_PATH = path.join(BASELINES_DIR, "manifest.backup.json");
-const MANIFEST_BACKUP_DIR = path.join(BASELINES_DIR, ".backups");
+function getManifestPath(): string {
+  return path.join(getBaselinesDir(), "manifest.json");
+}
+
+function getManifestBackupPath(): string {
+  return path.join(getBaselinesDir(), "manifest.backup.json");
+}
+
+function getManifestBackupDir(): string {
+  return path.join(getBaselinesDir(), ".backups");
+}
 
 interface RecoverManifestResponse {
   recovered: boolean;
@@ -17,12 +24,14 @@ interface RecoverManifestResponse {
 
 async function tryRestoreFromBackup(): Promise<RecoverManifestResponse | null> {
   try {
-    const backupData = await fs.readFile(MANIFEST_BACKUP_PATH, "utf-8");
+    const backupPath = getManifestBackupPath();
+    const manifestPath = getManifestPath();
+    const backupData = await fs.readFile(backupPath, "utf-8");
     const parsed = JSON.parse(backupData);
     const validation = validateManifest(parsed);
     
     if (validation.valid) {
-      await fs.copyFile(MANIFEST_BACKUP_PATH, MANIFEST_PATH);
+      await fs.copyFile(backupPath, manifestPath);
       return {
         recovered: true,
         message: "Manifest recovered from manifest.backup.json",
@@ -37,10 +46,12 @@ async function tryRestoreFromBackup(): Promise<RecoverManifestResponse | null> {
 
 async function tryRestoreFromTimestampedBackups(): Promise<RecoverManifestResponse | null> {
   try {
-    const files = await fs.readdir(MANIFEST_BACKUP_DIR);
+    const backupDir = getManifestBackupDir();
+    const manifestPath = getManifestPath();
+    const files = await fs.readdir(backupDir);
     const backups = files
       .filter(f => f.startsWith("manifest.") && f.endsWith(".backup.json"))
-      .map(f => path.join(MANIFEST_BACKUP_DIR, f));
+      .map(f => path.join(backupDir, f));
     
     const stats = await Promise.all(
       backups.map(async b => ({
@@ -58,7 +69,7 @@ async function tryRestoreFromTimestampedBackups(): Promise<RecoverManifestRespon
         const validation = validateManifest(parsed);
         
         if (validation.valid) {
-          await fs.copyFile(backup.path, MANIFEST_PATH);
+          await fs.copyFile(backup.path, manifestPath);
           return {
             recovered: true,
             message: `Manifest recovered from ${path.basename(backup.path)}`,
@@ -76,13 +87,15 @@ async function tryRestoreFromTimestampedBackups(): Promise<RecoverManifestRespon
 async function rebuildFromFilesystem(): Promise<RecoverManifestResponse> {
   const baselines: Array<{ screenId: string; name: string }> = [];
   
+  const baselinesDir = getBaselinesDir();
+  
   try {
-    const entries = await fs.readdir(BASELINES_DIR, { withFileTypes: true });
+    const entries = await fs.readdir(baselinesDir, { withFileTypes: true });
     
     for (const entry of entries) {
       if (entry.isDirectory() && !entry.name.startsWith(".")) {
         const screenId = entry.name;
-        const screenDir = path.join(BASELINES_DIR, screenId);
+        const screenDir = path.join(baselinesDir, screenId);
         
         const extensions = ["png", "jpg", "jpeg", "webp"];
         let hasImage = false;
@@ -118,7 +131,8 @@ async function rebuildFromFilesystem(): Promise<RecoverManifestResponse> {
   }
   
   const manifest = { baselines };
-  await fs.writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2), "utf-8");
+  const manifestPath = getManifestPath();
+  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
   
   return {
     recovered: true,
@@ -144,8 +158,10 @@ export const recoverManifest = api<void, RecoverManifestResponse>(
 export async function recoverManifestCLI(): Promise<RecoverManifestResponse> {
   console.log("🔍 Checking manifest integrity...");
   
+  const manifestPath = getManifestPath();
+  
   try {
-    const data = await fs.readFile(MANIFEST_PATH, "utf-8");
+    const data = await fs.readFile(manifestPath, "utf-8");
     const parsed = JSON.parse(data);
     const validation = validateManifest(parsed);
     
