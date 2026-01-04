@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   visual-regression:
     runs-on: ubuntu-latest
@@ -33,6 +37,12 @@ jobs:
       
       - name: Run AI Gatekeeper
         run: npx ai-gate run --baseURL http://localhost:3000
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create review pack
+        if: always()
+        run: npx ai-gate review-pack
       
       - name: Upload evidence artifacts
         if: always()
@@ -41,3 +51,15 @@ jobs:
           name: ai-gate-evidence
           path: .ai-gate/evidence/
           retention-days: 30
+      
+      - name: Upload review pack
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-gate-review-pack
+          path: ai-gate-review-pack.zip
+          retention-days: 30
+      
+      - name: Verify offline report
+        if: always()
+        run: npx tsx scripts/verify-offline-report.ts .ai-gate/evidence

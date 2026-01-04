@@ -49,6 +49,45 @@ AI Output Gate captures pixel-perfect baseline screenshots of your frontend rout
 
 ---
 
+## 🎯 2-Click Layman Flow (For Code Reviewers)
+
+**You're a non-technical reviewer who needs to verify AI-generated UI changes. Here's how:**
+
+### Step 1: Click the PR Comment Link
+When AI Gatekeeper runs on a PR, it posts a comment like this:
+
+```markdown
+🛡️ AI Output Gate - Visual Regression Summary
+
+Status: ⚠️  REVIEW REQUIRED
+Total Screens: 20
+✅ Passed: 18
+❌ Failed: 2
+
+📦 Evidence: Download artifact to review visual changes
+```
+
+### Step 2: Download & Open the Report
+1. Click **"Actions"** tab at top of PR
+2. Click the workflow run (green checkmark or red X)
+3. Scroll to **"Artifacts"** section at bottom
+4. Click **"ai-gate-evidence"** to download ZIP file
+5. Unzip the file anywhere on your computer
+6. **Open `index.html`** in your browser
+
+### Step 3: Review Visual Changes
+The report shows:
+- ✅ **Green screens**: No visual changes detected
+- ❌ **Red screens**: Visual changes found
+- 🖼️ **Side-by-side comparison**: Baseline vs New vs Diff
+
+**You'll see exactly what changed visually** - no code knowledge required!
+
+#### ✨ Works 100% Offline
+No internet connection needed after download. All images are embedded in the ZIP.
+
+---
+
 ## 15-Minute Onboarding
 
 Get from zero to first visual regression gate in 15 minutes.

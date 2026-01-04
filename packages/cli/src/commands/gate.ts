@@ -10,6 +10,7 @@ import {
   generateHTMLReport,
   generateJSONSummary,
   createEvidencePack,
+  createReviewPack,
   type GateResult,
   type ComparisonResult,
 } from '@ai-gate/core';
@@ -218,6 +219,67 @@ Examples:
       console.log(`  Location: ${chalk.cyan(pack.outputPath)}`);
     } catch (error) {
       spinner.fail('Failed to create evidence pack');
+      console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
+      process.exit(1);
+    }
+  });
+
+gateCommand
+  .command('review-pack')
+  .description('Generate reviewer-friendly pack with index.html (one-file download for non-technical reviewers)')
+  .option('--runId <id>', 'Pack specific run ID (default: latest)')
+  .option('--out <path>', 'Output ZIP file path (default: ai-gate-review-pack.zip)')
+  .option('--baselines <dir>', 'Include baseline images from directory (default: ./baselines)')
+  .addHelpText('after', `
+The review pack includes:
+  - index.html (interactive visual report)
+  - report.html (detailed technical report)
+  - summary.json (machine-readable results)
+  - baselines/ (expected screenshots)
+  - actual/ (current screenshots)
+  - diff/ (visual differences)
+  - README.md (instructions for reviewers)
+
+This pack is optimized for non-technical reviewers:
+  ✓ Works 100% offline (no internet needed)
+  ✓ Single file to download
+  ✓ Just open index.html in a browser
+  ✓ Side-by-side visual comparisons
+
+Examples:
+  Create review pack for latest run:
+    $ pnpm gate review-pack
+
+  Pack specific run:
+    $ pnpm gate review-pack --runId run-1234567890
+
+  Custom output path:
+    $ pnpm gate review-pack --out ./review.zip
+
+  Custom baselines directory:
+    $ pnpm gate review-pack --baselines ./my-baselines`)
+  .action(async (options) => {
+    const spinner = ora('Creating review pack...').start();
+
+    try {
+      const runId = options.runId || 'latest';
+      const runDir = path.join(process.cwd(), 'runs', runId);
+      const outputPath = options.out || path.join(process.cwd(), 'ai-gate-review-pack.zip');
+      const baselinesDir = options.baselines || path.join(process.cwd(), 'baselines');
+
+      const pack = await createReviewPack(runDir, outputPath, baselinesDir);
+
+      spinner.succeed(`Review pack created: ${chalk.cyan(pack.outputPath)}`);
+      console.log(chalk.bold('\n📦 Review Pack Ready'));
+      console.log(`  Files: ${pack.fileCount}`);
+      console.log(`  Location: ${chalk.cyan(pack.outputPath)}`);
+      console.log(chalk.bold('\n📖 How to Use:'));
+      console.log('  1. Send the ZIP file to reviewers');
+      console.log('  2. They unzip it anywhere on their computer');
+      console.log('  3. They open index.html in their browser');
+      console.log('  4. No internet connection needed!');
+    } catch (error) {
+      spinner.fail('Failed to create review pack');
       console.error(chalk.red(error instanceof Error ? error.message : 'Unknown error'));
       process.exit(1);
     }

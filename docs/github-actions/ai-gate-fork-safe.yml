@@ -1,0 +1,90 @@
+name: AI Gatekeeper (Fork-Safe)
+
+# This workflow variant is optimized for repositories that accept PRs from forks.
+# It gracefully handles permission limitations when PRs come from external forks.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Fork PR Permissions:
+# - contents: read - Always safe, allows checkout
+# - pull-requests: write - Only works for same-repo PRs, not fork PRs
+#
+# When a PR is from a fork:
+# - The workflow will run but cannot post comments
+# - AI Gatekeeper detects this and shows helpful fallback message
+# - Evidence is still uploaded to Artifacts for manual review
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  visual-regression:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+      
+      - name: Build app
+        run: npm run build
+      
+      - name: Start app in background
+        run: |
+          npm run start &
+          npx wait-on http://localhost:3000 --timeout 60000
+      
+      - name: Run AI Gatekeeper
+        run: npx ai-gate run --baseURL http://localhost:3000
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # AI Gatekeeper will:
+        # 1. Attempt to post PR comment (works for same-repo PRs)
+        # 2. Gracefully fail with helpful message (for fork PRs)
+        # 3. Continue execution and upload evidence to Artifacts
+      
+      - name: Upload evidence artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-gate-evidence
+          path: .ai-gate/evidence/
+          retention-days: 30
+        # Evidence is ALWAYS uploaded, even if PR comment fails
+        # Reviewers can download from: Actions → Workflow run → Artifacts
+      
+      - name: Verify offline report correctness
+        if: always()
+        run: npx tsx scripts/verify-offline-report.ts .ai-gate/evidence
+        # Ensures the evidence pack works offline with no broken links
+      
+      - name: Fork PR Instructions
+        if: failure() && github.event.pull_request.head.repo.fork == true
+        run: |
+          echo "================================================"
+          echo "📦 Evidence Pack Ready for Review"
+          echo "================================================"
+          echo ""
+          echo "This PR is from a fork, so AI Gatekeeper cannot"
+          echo "post a comment. Please review the evidence manually:"
+          echo ""
+          echo "1. Go to the 'Actions' tab"
+          echo "2. Click this workflow run"
+          echo "3. Scroll to 'Artifacts' section"
+          echo "4. Download 'ai-gate-evidence'"
+          echo "5. Unzip and open 'index.html' in your browser"
+          echo ""
+          echo "================================================"
