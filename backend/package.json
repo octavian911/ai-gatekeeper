@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
-    "encore.dev": "^1.53.0"
+    "encore.dev": "^1.53.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "adm-zip": "^0.5.16",

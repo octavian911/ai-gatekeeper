@@ -49,7 +49,7 @@ export function BaselineCard({
   };
 
   return (
-    <div className="border-2 border-border-strong rounded-lg p-4 bg-card hover:border-border-strong hover:shadow-sm transition-all">
+    <div data-testid="baseline-card" className="border-2 border-border-strong rounded-lg p-4 bg-card hover:border-border-strong hover:shadow-sm transition-all">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <h3 className="font-semibold text-value mb-1">{baseline.name}</h3>

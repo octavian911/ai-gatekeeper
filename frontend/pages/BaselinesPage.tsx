@@ -278,7 +278,7 @@ export function BaselinesPage() {
     try {
       showToast("Preparing download…", "success");
       
-      const response = await backend.baselines.exportZipFs({
+      const response = await backend.baselines.exportZipBinary({
         filter: filterStatus !== "all" ? filterStatus : undefined,
         search: searchQuery || undefined,
       });
@@ -324,11 +324,11 @@ export function BaselinesPage() {
         params.set("search", searchQuery);
       }
       const queryString = params.toString();
-      const baseUrl = "https://ai-output-gate-d5c156k82vjumvf6738g.api.lp.dev";
-      const exportUrl = `${baseUrl}/baselines/export-zip-fs${queryString ? `?${queryString}` : ""}`;
+      const baseUrl = import.meta.env.VITE_API_URL || "https://ai-output-gate-d5c156k82vjumvf6738g.api.lp.dev";
+      const exportUrl = `${baseUrl}/baselines/export.zip${queryString ? `?${queryString}` : ""}`;
       
       await navigator.clipboard.writeText(exportUrl);
-      showToast("API link copied. Open in browser to download (returns base64 JSON).", "success");
+      showToast("Export API endpoint copied to clipboard", "success");
     } catch (error) {
       console.error("Failed to copy link:", error);
       showToast("Failed to copy link", "error");

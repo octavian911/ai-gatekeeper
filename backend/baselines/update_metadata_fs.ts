@@ -6,6 +6,37 @@ import {
   writeScreenConfig,
 } from "./filesystem";
 
+function validateMasks(masks: Array<{ type: string; selector?: string; x?: number; y?: number; width?: number; height?: number }>): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  masks.forEach((mask, index) => {
+    if (mask.type === "css") {
+      if (!mask.selector || mask.selector.trim() === "") {
+        errors.push(`Mask ${index + 1}: CSS selector cannot be empty`);
+      } else if (mask.selector.length > 200) {
+        errors.push(`Mask ${index + 1}: CSS selector exceeds 200 characters`);
+      }
+    } else if (mask.type === "rect") {
+      if (mask.x === undefined || mask.x < 0) {
+        errors.push(`Mask ${index + 1}: x must be >= 0`);
+      }
+      if (mask.y === undefined || mask.y < 0) {
+        errors.push(`Mask ${index + 1}: y must be >= 0`);
+      }
+      if (mask.width === undefined || mask.width <= 0) {
+        errors.push(`Mask ${index + 1}: width must be > 0`);
+      }
+      if (mask.height === undefined || mask.height <= 0) {
+        errors.push(`Mask ${index + 1}: height must be > 0`);
+      }
+    } else {
+      errors.push(`Mask ${index + 1}: invalid type "${mask.type}" (must be "css" or "rect")`);
+    }
+  });
+  
+  return { valid: errors.length === 0, errors };
+}
+
 export interface UpdateMetadataRequest {
   screenId: string;
   name?: string;
@@ -75,6 +106,13 @@ export const updateMetadataFs = api<UpdateMetadataRequest, UpdateMetadataRespons
     }
 
     if (req.masks !== undefined) {
+      const validation = validateMasks(req.masks);
+      if (!validation.valid) {
+        return {
+          success: false,
+          message: `Invalid masks: ${validation.errors.join(", ")}`,
+        };
+      }
       updatedConfig.masks = req.masks;
     }
 

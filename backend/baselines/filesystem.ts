@@ -1,10 +1,13 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { z } from "zod";
 
 const BASELINES_DIR = "/baselines";
 const MANIFEST_PATH = path.join(BASELINES_DIR, "manifest.json");
+const MANIFEST_BACKUP_DIR = path.join(BASELINES_DIR, ".backups");
 const POLICY_PATH = "/.gate/policy.json";
+const MAX_BACKUPS = 5;
 
 export interface ManifestBaseline {
   screenId: string;
@@ -16,6 +19,33 @@ export interface ManifestBaseline {
 
 export interface Manifest {
   baselines: ManifestBaseline[];
+}
+
+const ManifestBaselineSchema = z.object({
+  screenId: z.string().min(1),
+  name: z.string().min(1),
+  url: z.string().optional(),
+  hash: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+const ManifestSchema = z.object({
+  baselines: z.array(ManifestBaselineSchema),
+});
+
+export function validateManifest(data: any): { valid: boolean; errors?: string[] } {
+  try {
+    ManifestSchema.parse(data);
+    return { valid: true };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        valid: false,
+        errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`),
+      };
+    }
+    return { valid: false, errors: ["Unknown validation error"] };
+  }
 }
 
 export interface ScreenConfig {
@@ -39,15 +69,84 @@ export async function readManifest(): Promise<Manifest> {
   try {
     await ensureBaselinesDir();
     const data = await fs.readFile(MANIFEST_PATH, "utf-8");
-    return JSON.parse(data);
-  } catch {
+    const parsed = JSON.parse(data);
+    
+    const validation = validateManifest(parsed);
+    if (!validation.valid) {
+      console.error("Manifest validation failed:", validation.errors);
+      throw new Error(`Manifest corrupted: ${validation.errors?.join(", ")}`);
+    }
+    
+    return parsed;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Manifest corrupted")) {
+      throw error;
+    }
     return { baselines: [] };
+  }
+}
+
+async function ensureBackupDir(): Promise<void> {
+  try {
+    await fs.access(MANIFEST_BACKUP_DIR);
+  } catch {
+    await fs.mkdir(MANIFEST_BACKUP_DIR, { recursive: true });
+  }
+}
+
+async function rotateBackups(): Promise<void> {
+  await ensureBackupDir();
+  
+  try {
+    const files = await fs.readdir(MANIFEST_BACKUP_DIR);
+    const backups = files
+      .filter(f => f.startsWith("manifest.") && f.endsWith(".backup.json"))
+      .map(f => ({
+        name: f,
+        path: path.join(MANIFEST_BACKUP_DIR, f),
+      }));
+    
+    const stats = await Promise.all(
+      backups.map(async b => ({
+        ...b,
+        mtime: (await fs.stat(b.path)).mtime,
+      }))
+    );
+    
+    stats.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+    
+    if (stats.length >= MAX_BACKUPS) {
+      const toDelete = stats.slice(MAX_BACKUPS - 1);
+      await Promise.all(toDelete.map(b => fs.rm(b.path, { force: true })));
+    }
+  } catch (error) {
+    console.error("Failed to rotate backups:", error);
   }
 }
 
 export async function writeManifest(manifest: Manifest): Promise<void> {
   await ensureBaselinesDir();
-  await fs.writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2), "utf-8");
+  
+  const validation = validateManifest(manifest);
+  if (!validation.valid) {
+    throw new Error(`Invalid manifest: ${validation.errors?.join(", ")}`);
+  }
+  
+  try {
+    await fs.access(MANIFEST_PATH);
+    await ensureBackupDir();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const backupPath = path.join(MANIFEST_BACKUP_DIR, `manifest.${timestamp}.backup.json`);
+    await fs.copyFile(MANIFEST_PATH, backupPath);
+    await rotateBackups();
+    
+    const lastBackupPath = path.join(BASELINES_DIR, "manifest.backup.json");
+    await fs.copyFile(MANIFEST_PATH, lastBackupPath).catch(() => {});
+  } catch {}
+  
+  const tempPath = `${MANIFEST_PATH}.tmp`;
+  await fs.writeFile(tempPath, JSON.stringify(manifest, null, 2), "utf-8");
+  await fs.rename(tempPath, MANIFEST_PATH);
 }
 
 export async function readScreenConfig(screenId: string): Promise<ScreenConfig | null> {

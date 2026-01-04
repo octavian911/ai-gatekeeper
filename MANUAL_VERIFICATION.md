@@ -1,0 +1,414 @@
+# Manual Verification Guide
+
+After deploying the stabilization sprint changes, follow these steps to verify everything works correctly.
+
+---
+
+## ✅ 1. Export ZIP Verification
+
+### Test: Export Download Works
+```bash
+# In browser:
+1. Navigate to Baselines page
+2. Click "Export ZIP" button
+3. Verify download starts
+4. Open downloaded ZIP
+5. Verify structure:
+   baselines/
+     manifest.json
+     <screenId>/baseline.png
+     <screenId>/screen.json (if exists)
+   .gate/policy.json (if exists)
+   README.txt
+```
+
+**Expected:** Download completes, ZIP structure correct.
+
+### Test: Copy Export Link
+```bash
+# In browser:
+1. Click "Copy link" button (link icon)
+2. Paste URL in new browser tab
+3. Verify download starts
+```
+
+**Expected:** Link copied, download works when pasted.
+
+---
+
+## ✅ 2. Manifest Recovery Verification
+
+### Test: Corrupt and Recover
+```bash
+# Terminal:
+cd /baselines
+
+# Backup current manifest
+cp manifest.json manifest.safe.json
+
+# Corrupt manifest
+echo "corrupted" > manifest.json
+
+# Try CLI recovery
+pnpm gate manifest:recover
+
+# Verify
+cat manifest.json | jq .
+```
+
+**Expected:** 
+- ✅ Recovery succeeds
+- ✅ Manifest restored from backup
+- ✅ Baselines count matches original
+
+### Test: Validate Manifest
+```bash
+# Terminal:
+pnpm gate manifest:validate
+```
+
+**Expected:** 
+- ✅ Validation passes
+- ✅ Shows baseline count
+
+### Test: API Recovery
+```bash
+# In browser console (while on Baselines page):
+fetch('/baselines/recover-manifest', { method: 'POST' })
+  .then(r => r.json())
+  .then(console.log);
+```
+
+**Expected:** `{ "recovered": false, "message": "Manifest is valid. No recovery needed." }`
+
+---
+
+## ✅ 3. Mask Validation Verification
+
+### Test: Invalid CSS Mask
+```bash
+# In browser:
+1. Click "View" on any baseline
+2. Click "Edit" (if available) or "Add Mask"
+3. Add CSS mask with empty selector: ""
+4. Click "Save"
+```
+
+**Expected:** 
+- ❌ Save fails
+- ❌ Error message: "CSS selector cannot be empty"
+
+### Test: Invalid Rect Mask
+```bash
+# In browser:
+1. Add Rectangle mask
+2. Set width = -10
+3. Click "Save"
+```
+
+**Expected:**
+- ❌ Save fails
+- ❌ Error message: "width must be > 0"
+
+### Test: Valid Masks
+```bash
+# In browser:
+1. Add CSS mask: "input[name='timestamp']"
+2. Add Rect mask: x=10, y=10, width=100, height=50
+3. Click "Save"
+```
+
+**Expected:**
+- ✅ Save succeeds
+- ✅ Masks persist after page reload
+
+---
+
+## ✅ 4. Bulk Upload Safety Verification
+
+### Test: Upload 25 Files (Max)
+```bash
+# Prepare 25 test images (or use script)
+for i in {1..25}; do
+  cp test-image.png test-$i.png
+done
+
+# In browser:
+1. Click "Upload Images"
+2. Select all 25 files
+3. Click "Upload"
+```
+
+**Expected:**
+- ✅ Upload succeeds
+- ✅ All 25 baselines created
+- ✅ No errors in console
+
+### Test: Upload 26 Files (Over Limit)
+```bash
+# Prepare 26 test images
+for i in {1..26}; do
+  cp test-image.png test-$i.png
+done
+
+# In browser:
+1. Click "Upload Images"
+2. Select all 26 files
+3. Click "Upload"
+```
+
+**Expected:**
+- ❌ Upload fails
+- ❌ Error toast: "Maximum 25 files per upload"
+
+### Test: Concurrent Uploads to Same screenId
+```bash
+# In browser console:
+const file1 = ... // Create File object
+const file2 = ... // Create File object with different content
+
+// Simulate concurrent uploads to same screenId
+Promise.all([
+  backend.baselines.uploadMultiFs({
+    baselines: [{
+      screenId: "test-concurrent",
+      name: "Test 1",
+      imageData: btoa("..."),
+      viewportWidth: 1280,
+      viewportHeight: 720
+    }]
+  }),
+  backend.baselines.uploadMultiFs({
+    baselines: [{
+      screenId: "test-concurrent",
+      name: "Test 2",
+      imageData: btoa("...different..."),
+      viewportWidth: 1280,
+      viewportHeight: 720
+    }]
+  })
+]).then(console.log);
+```
+
+**Expected:**
+- ✅ Both requests complete
+- ✅ Only ONE baseline with screenId "test-concurrent" exists
+- ✅ Last write wins (determined by lock order)
+
+---
+
+## ✅ 5. E2E Tests Verification
+
+### Test: Run E2E Locally
+```bash
+# Terminal:
+pnpm test:e2e
+```
+
+**Expected:**
+- ✅ 7 tests pass (or expected number)
+- ✅ Artifacts generated in tests/artifacts/
+- ✅ No failures
+
+### Test: View E2E Report
+```bash
+# Terminal (after running tests):
+npx playwright show-report tests/artifacts/playwright-report
+```
+
+**Expected:**
+- ✅ HTML report opens in browser
+- ✅ All tests green
+- ✅ Screenshots available (if any failures)
+
+### Test: CI E2E Job
+```bash
+# In GitHub:
+1. Push to main branch
+2. Go to Actions tab
+3. Find latest CI run
+4. Check "e2e" job
+```
+
+**Expected:**
+- ✅ Job completes successfully
+- ✅ Artifacts uploaded (e2e-test-results)
+- ✅ Download and verify artifacts
+
+---
+
+## ✅ 6. Metrics Measurement Verification
+
+### Test: Run Metrics Locally
+```bash
+# Terminal (with demo app running):
+pnpm test:metrics
+```
+
+**Expected Output:**
+```
+╔════════════════════════════════════════════════════════════════╗
+║  AI Output Gate - Metrics Measurement                         ║
+╚════════════════════════════════════════════════════════════════╝
+
+📊 Measuring runtime (single run)...
+   ✅ Runtime: 45.23s
+
+🔄 Measuring flake rate (repeatability check)...
+   Running gate a second time...
+   ✅ Second run: 46.12s
+   ✅ Both runs passed - stable
+
+════════════════════════════════════════════════════════════════
+📈 METRICS SUMMARY
+════════════════════════════════════════════════════════════════
+Runtime:          45.68s (avg for 20 screens)
+Flake Rate:       0.0% (target: ≤1%)
+False Fail Rate:  0.0% (target: ≤2%)
+Repeatability:    2/2 runs passed
+════════════════════════════════════════════════════════════════
+
+🎯 90% READY TARGETS:
+   ✅ Flake Rate:      0.0% ≤ 1%
+   ✅ False Fail Rate: 0.0% ≤ 2%
+   ✅ Runtime:         45.68s ≤ 300s (5min)
+
+✅ Metrics saved to: /workspace/artifacts/metrics.json
+```
+
+### Test: Verify Metrics JSON
+```bash
+# Terminal:
+cat artifacts/metrics.json | jq .
+```
+
+**Expected:**
+```json
+{
+  "timestamp": "2026-01-03T...",
+  "runtime_seconds": 45.68,
+  "total_screens": 20,
+  "flake_rate": 0,
+  "false_fail_rate": 0,
+  "repeatability_pass_count": 2,
+  "repeatability_total_count": 2,
+  "notes": [
+    "Both runs passed - stable baseline"
+  ]
+}
+```
+
+### Test: CI Metrics Job
+```bash
+# In GitHub:
+1. Push to main branch
+2. Go to Actions tab
+3. Find latest CI run
+4. Check "metrics" job
+5. View job summary
+```
+
+**Expected:**
+- ✅ Job completes successfully
+- ✅ Metrics summary displayed in step summary
+- ✅ Artifact uploaded (metrics.json, 30-day retention)
+
+---
+
+## ✅ 7. Manifest Backup Verification
+
+### Test: Automatic Backups Created
+```bash
+# Terminal:
+ls -la baselines/.backups/
+
+# Expected:
+manifest.2026-01-03T10-30-00-000Z.backup.json
+manifest.2026-01-03T11-15-00-000Z.backup.json
+...
+
+# Check last backup
+ls -la baselines/manifest.backup.json
+```
+
+**Expected:**
+- ✅ Timestamped backups exist in .backups/
+- ✅ manifest.backup.json is latest backup
+- ✅ Max 5 backups kept (older ones rotated)
+
+### Test: Backup on Upload
+```bash
+# Terminal:
+# Note initial backup count
+ls baselines/.backups/ | wc -l
+
+# In browser:
+1. Upload a new baseline
+2. Wait for success toast
+
+# Terminal:
+ls baselines/.backups/ | wc -l
+# Should be +1 (or same if rotation happened)
+```
+
+**Expected:**
+- ✅ New backup created after upload
+- ✅ Rotation keeps max 5
+
+---
+
+## ✅ 8. Production Readiness Checklist
+
+### Final Checks
+- [ ] Export ZIP download works
+- [ ] Manifest recovery works (corrupt → recover → validate)
+- [ ] Invalid masks rejected with clear errors
+- [ ] Bulk upload limited to 25 files
+- [ ] Concurrent uploads safe (per-screenId locks)
+- [ ] E2E tests pass locally
+- [ ] Metrics measurement completes successfully
+- [ ] CI jobs all green (test, e2e, regression-validation, metrics)
+- [ ] Backups created automatically
+- [ ] No TypeScript errors (`pnpm typecheck`)
+- [ ] No linting errors (`pnpm lint`)
+- [ ] Build succeeds (`pnpm build`)
+
+**If all checks pass:** ✅ Production-ready
+
+---
+
+## Troubleshooting
+
+### E2E Tests Fail Locally
+```bash
+# Ensure fixtures exist
+pnpm tsx tests/fixtures/create-fixtures.ts
+
+# Run headed mode to see what's happening
+pnpm test:e2e:headed
+```
+
+### Metrics Measurement Times Out
+```bash
+# Ensure demo app is running
+pnpm demo:start
+
+# In another terminal:
+pnpm test:metrics
+```
+
+### Manifest Recovery Fails
+```bash
+# Check if backups exist
+ls baselines/.backups/
+
+# If no backups, recovery will rebuild from filesystem
+# This is expected if no previous backups were created
+```
+
+### Upload Limit Not Working
+```bash
+# Check backend logs for the error
+# Error should be: APIError.resourceExhausted
+# Frontend should show error toast
+```

@@ -122,7 +122,7 @@ export function BaselinePreviewDrawer({
   const hasNoisyWarning = tags.includes("noisy") && masks.length === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div data-testid="baseline-preview-drawer" className="fixed inset-0 z-50 flex">
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       <div className="ml-auto relative z-50 bg-background border-l-2 border-border-strong w-full max-w-2xl h-full overflow-y-auto">
@@ -142,7 +142,7 @@ export function BaselinePreviewDrawer({
 
         <div className="p-6 space-y-6">
           <div>
-            <img src={imageData} alt={baseline.name} className="w-full border-2 border-border rounded-lg" />
+            <img data-testid="baseline-preview-image" src={imageData} alt={baseline.name} className="w-full border-2 border-border rounded-lg" />
           </div>
 
           <div>
