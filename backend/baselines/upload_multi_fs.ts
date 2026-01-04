@@ -110,6 +110,10 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
       manifest.baselines.map((b) => [b.screenId, b])
     );
     const incomingIds = new Set<string>();
+    
+    const originalBaselines = new Map(
+      manifest.baselines.map((b) => [b.screenId, { hash: b.hash }])
+    );
 
     type ProcessResult = { type: "success"; data: UploadedBaseline } | { type: "error"; error: { screenId: string; message: string } };
 
@@ -153,15 +157,19 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
           }
 
           const hash = await getImageHash(imageBuffer);
-          const existingBaseline = baselineMap.get(input.screenId);
+          const prevEntry = originalBaselines.get(input.screenId);
+          const prevHash = prevEntry?.hash;
           
           let uploadStatus: "created" | "updated" | "no_change";
           
-          if (existingBaseline && existingBaseline.hash === hash) {
-            uploadStatus = "no_change";
-          } else {
+          if (!prevEntry) {
+            uploadStatus = "created";
             await writeBaselineImage(input.screenId, imageBuffer);
-            uploadStatus = existingBaseline ? "updated" : "created";
+          } else if (prevHash !== hash) {
+            uploadStatus = "updated";
+            await writeBaselineImage(input.screenId, imageBuffer);
+          } else {
+            uploadStatus = "no_change";
           }
 
           const hasOverrides =
