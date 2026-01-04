@@ -137,12 +137,33 @@ test.describe("Baselines E2E Tests", () => {
     const downloadContentType = downloadResponse.headers()["content-type"];
     expect(downloadContentType).toContain("application/zip");
     
+    const contentLength = downloadResponse.headers()["content-length"];
+    expect(contentLength).toBeDefined();
+    expect(parseInt(contentLength || "0")).toBeGreaterThan(0);
+    
     const body = await downloadResponse.body();
     expect(body.length).toBeGreaterThan(0);
     
     const zipSignature = body.slice(0, 4);
     expect(zipSignature[0]).toBe(0x50);
     expect(zipSignature[1]).toBe(0x4B);
+    
+    const AdmZip = (await import("adm-zip")).default;
+    const zip = new AdmZip(body);
+    const zipEntries = zip.getEntries();
+    
+    const manifestEntry = zipEntries.find(e => e.entryName === "baselines/manifest.json");
+    expect(manifestEntry).toBeDefined();
+    
+    const manifestContent = manifestEntry?.getData().toString("utf-8");
+    expect(manifestContent).toBeDefined();
+    const manifestJson = JSON.parse(manifestContent || "{}");
+    expect(manifestJson.baselines).toBeDefined();
+    
+    const imageEntries = zipEntries.filter(e => 
+      e.entryName.match(/^baselines\/[^/]+\/baseline\.(png|jpg|jpeg|webp)$/)
+    );
+    expect(imageEntries.length).toBeGreaterThan(0);
   });
 
   test("Export ZIP download triggers in browser", async ({ page }) => {

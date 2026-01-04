@@ -169,7 +169,8 @@ Baselines exported: ${filteredBaselines.length}
     const filename = `baselines-export-${dateStr}-${timeStr}.zip`;
 
     const exportId = randomUUID();
-    const objectName = `${exportId}.zip`;
+    const repoId = process.env.ENCORE_APP_ID || "baselines";
+    const objectName = `${repoId}/${exportId}.zip`;
 
     await exportZips.upload(objectName, zipBuffer, {
       contentType: "application/zip",

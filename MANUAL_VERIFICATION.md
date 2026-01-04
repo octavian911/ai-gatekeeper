@@ -69,6 +69,53 @@ The export system delivers real binary ZIP files using object storage:
 - Signed URL returns Content-Type: application/zip
 - No base64 encoding visible in Network tab
 
+### Test: Signed URL Binary Export Security
+```bash
+# Verify signed URL forces download and contains correct content
+curl -I "$(curl -s https://ai-output-gate-d5c156k82vjumvf6738g.api.lp.dev/baselines/export.zip | jq -r '.downloadUrl')"
+
+# Expected headers:
+HTTP/2 200
+content-type: application/zip
+content-length: <positive number>
+# Note: Content-Disposition may vary by cloud provider but should trigger download
+
+# Download and verify ZIP structure
+curl -s "$(curl -s https://ai-output-gate-d5c156k82vjumvf6738g.api.lp.dev/baselines/export.zip | jq -r '.downloadUrl')" -o /tmp/test-export.zip
+
+# Verify ZIP is valid
+unzip -l /tmp/test-export.zip
+
+# Expected entries:
+baselines/manifest.json
+baselines/<screenId>/baseline.png (at least 1 image file)
+baselines/<screenId>/screen.json (optional)
+.gate/policy.json (optional)
+README.txt
+
+# Verify manifest.json exists and is valid JSON
+unzip -p /tmp/test-export.zip baselines/manifest.json | jq .
+
+# Expected: Valid JSON with baselines array
+{
+  "baselines": [...]
+}
+
+# Verify object key includes repoId/exportId pattern
+# Object keys should follow pattern: <repoId>/<uuid>.zip
+# This prevents collisions across repositories
+```
+
+**Expected Security Properties:**
+- ✅ Content-Type: application/zip preserved
+- ✅ Content-Length > 0
+- ✅ ZIP file opens successfully
+- ✅ baselines/manifest.json exists at expected path
+- ✅ At least 1 baseline image file present
+- ✅ Object key includes repoId prefix (visible in signed URL path)
+- ✅ Bucket is private (signed URL required, not publicly accessible)
+- ✅ Signed URL expires after 10 minutes (test by waiting or checking expiresAt)
+
 ### Test: Large Export Performance
 ```bash
 # In browser:
