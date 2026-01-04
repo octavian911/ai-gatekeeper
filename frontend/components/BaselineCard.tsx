@@ -129,7 +129,7 @@ export function BaselineCard({
             </Button>
           </>
         ) : (
-          <div className="text-sm text-muted-foreground text-center py-2 flex-1">
+          <div className="text-sm text-label text-center py-2 flex-1">
             No baseline image found
           </div>
         )}
