@@ -65,7 +65,7 @@ Troubleshooting:
       const baseURL = options.baseURL;
       const isCi = options.ci || false;
       const runId = `run-${Date.now()}`;
-      const outDir = options.outDir || path.join(process.cwd(), 'runs', runId);
+      const outDir = options.outDir || path.join(process.cwd(), '.ai-gate', 'evidence', runId);
       const screensFilter = options.screens
         ? options.screens.split(',').map((s: string) => s.trim())
         : null;
@@ -363,8 +363,8 @@ Troubleshooting:
       console.log(`  ${chalk.red('FAIL')}: ${summary.failed}`);
       console.log(`\n  Report: ${chalk.cyan(path.join(outDir, 'report.html'))}`);
 
-      if (isCi && summary.failed > 0) {
-        console.log(chalk.red('\n❌ CI mode: Exiting with code 1 due to failures'));
+      if (summary.failed > 0) {
+        console.log(chalk.red('\n❌ Gate failed: Exiting with code 1 due to failures'));
         process.exit(1);
       }
 
