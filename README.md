@@ -47,6 +47,17 @@ AI Output Gate captures pixel-perfect baseline screenshots of your frontend rout
 - 🤖 GitHub Actions integration with PR comments
 - 📊 HTML/JSON reporting
 
+### SPA Routing Configuration
+
+The application is configured as a Single-Page Application (SPA) using Encore.ts. The `encore.json` file contains `"spa": true`, which enables History API fallback. This ensures:
+
+- All non-API routes (e.g., `/baselines`, `/reviews`, `/docs/install`) serve the frontend `index.html`
+- Hard refreshes on any frontend route work correctly without server 404 errors
+- Unknown routes (e.g., `/asdf`) return the app shell, which then redirects to the landing page via client-side routing
+- API routes under `/api/**` and static assets (`.js`, `.css`, `.png`, etc.) are not affected by the fallback
+
+This configuration is essential for proper client-side routing in production environments and prevents the common SPA deployment issue where direct navigation or page refreshes result in 404 errors.
+
 ---
 
 ## 🎯 2-Click Layman Flow (For Code Reviewers)

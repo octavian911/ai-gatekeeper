@@ -43,16 +43,18 @@ test.describe("SPA Routing", () => {
     await expect(page).toHaveURL("/");
   });
 
-  test("unknown routes like /random should show 404 without changing URL", async ({ page }) => {
-    await page.goto("/random");
+  test("unknown routes like /asdf redirect to landing page", async ({ page }) => {
+    await page.goto("/asdf");
     
-    await expect(page).toHaveURL("/random");
-    await expect(page.locator("h1")).toContainText("404");
+    await expect(page).toHaveURL("/");
     
-    await page.reload();
+    const response = await page.request.get("/asdf");
+    expect(response.status()).toBe(200);
+    const contentType = response.headers()["content-type"];
+    expect(contentType).toMatch(/text\/html/);
     
-    await expect(page).toHaveURL("/random");
-    await expect(page.locator("h1")).toContainText("404");
+    const body = await response.text();
+    expect(body).toContain("<!doctype html>");
   });
 
   test("API routes should not be affected by SPA fallback", async ({ page }) => {
