@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Copy, Check, AlertCircle } from "lucide-react";
+import { Copy, Check, AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export function InstallDocsPage() {
   const [copiedCommand, setCopiedCommand] = useState(false);
   const [copiedWorkflow, setCopiedWorkflow] = useState(false);
+  const navigate = useNavigate();
 
   const copyToClipboard = (text: string, type: "command" | "workflow") => {
     navigator.clipboard.writeText(text);
@@ -61,6 +63,14 @@ jobs:
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="mb-6 text-gray-300 hover:text-white"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Dashboard
+        </Button>
         <h1 className="text-4xl font-bold text-white mb-6">Installation Guide</h1>
         <p className="text-lg text-gray-300 mb-8">
           Add AI Gatekeeper to your repository in 5 minutes
