@@ -6,12 +6,20 @@ After deploying the stabilization sprint changes, follow these steps to verify e
 
 ## ✅ 1. Export ZIP Verification
 
+### Export Flow Architecture
+
+The export system delivers real binary ZIP files using object storage:
+
+1. **Backend**: Generates ZIP in-memory → uploads to object storage bucket → returns signed download URL (10min TTL)
+2. **Frontend**: Receives download URL → triggers browser navigation → binary ZIP downloads
+3. **Cleanup**: Cron job runs every 10 minutes, deletes exports older than 15 minutes
+
 ### Test: Export Download Works
 ```bash
 # In browser:
 1. Navigate to Baselines page
 2. Click "Export ZIP" button
-3. Verify download starts
+3. Verify download starts immediately
 4. Open downloaded ZIP
 5. Verify structure:
    baselines/
@@ -22,17 +30,58 @@ After deploying the stabilization sprint changes, follow these steps to verify e
    README.txt
 ```
 
-**Expected:** Download completes, ZIP structure correct.
+**Expected:** 
+- Download starts immediately (no base64 decode delay)
+- ZIP structure correct
+- File size is reasonable (no base64 inflation)
 
 ### Test: Copy Export Link
 ```bash
 # In browser:
 1. Click "Copy link" button (link icon)
-2. Paste URL in new browser tab
-3. Verify download starts
+2. Toast message shows expiration time
+3. Paste URL in new browser tab
+4. Verify binary ZIP downloads directly
 ```
 
-**Expected:** Link copied, download works when pasted.
+**Expected:** 
+- Signed URL copied to clipboard
+- Toast shows: "Download link copied... (expires at HH:MM:SS)"
+- Direct paste in new tab downloads ZIP (no JSON wrapper)
+- Link expires after 10 minutes (404 or error)
+
+### Test: Network Tab Validation
+```bash
+# In browser DevTools:
+1. Open Network tab
+2. Click "Export ZIP"
+3. Find first request to /baselines/export.zip
+   - Expected response: JSON with {downloadUrl, filename, expiresAt}
+4. Find second request to signed download URL
+   - Expected Content-Type: application/zip
+   - Expected Content-Disposition: attachment
+   - Expected body: binary ZIP bytes (starts with 0x504B)
+```
+
+**Expected:**
+- API returns JSON metadata (not binary)
+- downloadUrl is a signed URL (e.g., AWS S3, GCS, or similar)
+- Signed URL returns Content-Type: application/zip
+- No base64 encoding visible in Network tab
+
+### Test: Large Export Performance
+```bash
+# In browser:
+1. Apply filter: "all" (no filter)
+2. Ensure 10+ baselines exist
+3. Click "Export ZIP"
+4. Measure time from click to download start
+```
+
+**Expected:**
+- Download starts within 3-5 seconds (regardless of ZIP size)
+- No browser lag or freeze
+- Memory usage stays reasonable (no large base64 strings in memory)
 
 ---
 

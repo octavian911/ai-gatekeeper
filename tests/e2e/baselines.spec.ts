@@ -115,20 +115,29 @@ test.describe("Baselines E2E Tests", () => {
     expect(newCount).toBeGreaterThanOrEqual(initialCount);
   });
 
-  test("Export ZIP endpoint returns binary", async ({ request }) => {
+  test("Export ZIP endpoint returns signed URL and binary download", async ({ request }) => {
     const response = await request.get(`${API_BASE_URL}/baselines/export.zip`);
     
     expect(response.ok()).toBeTruthy();
     expect(response.status()).toBe(200);
     
     const contentType = response.headers()["content-type"];
-    expect(contentType).toContain("application/zip");
+    expect(contentType).toContain("application/json");
     
-    const contentDisposition = response.headers()["content-disposition"];
-    expect(contentDisposition).toContain("attachment");
-    expect(contentDisposition).toContain("filename");
+    const json = await response.json();
+    expect(json.downloadUrl).toBeDefined();
+    expect(json.filename).toBeDefined();
+    expect(json.expiresAt).toBeDefined();
+    expect(json.filename).toMatch(/baselines-export-.*\.zip/);
     
-    const body = await response.body();
+    const downloadResponse = await request.get(json.downloadUrl);
+    expect(downloadResponse.ok()).toBeTruthy();
+    expect(downloadResponse.status()).toBe(200);
+    
+    const downloadContentType = downloadResponse.headers()["content-type"];
+    expect(downloadContentType).toContain("application/zip");
+    
+    const body = await downloadResponse.body();
     expect(body.length).toBeGreaterThan(0);
     
     const zipSignature = body.slice(0, 4);

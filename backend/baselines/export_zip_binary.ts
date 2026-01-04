@@ -2,12 +2,14 @@ import { api, Query, Header } from "encore.dev/api";
 import AdmZip from "adm-zip";
 import fs from "fs/promises";
 import path from "path";
+import { randomUUID } from "crypto";
 import {
   readManifest,
   readScreenConfig,
   readBaselineImage,
   readPolicy,
 } from "./filesystem";
+import { exportZips } from "./storage";
 
 const BASELINES_DIR = "/baselines";
 
@@ -17,8 +19,9 @@ export interface ExportZipBinaryParams {
 }
 
 interface ExportZipBinaryResponse {
-  zipData: string;
+  downloadUrl: string;
   filename: string;
+  expiresAt: string;
 }
 
 async function validateBaseline(
@@ -159,16 +162,30 @@ Baselines exported: ${filteredBaselines.length}
     zip.addFile("README.txt", Buffer.from(readmeContent));
 
     const zipBuffer = zip.toBuffer();
-    const zipData = zipBuffer.toString("base64");
 
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
     const timeStr = now.toISOString().slice(11, 16).replace(/:/g, "");
     const filename = `baselines-export-${dateStr}-${timeStr}.zip`;
 
+    const exportId = randomUUID();
+    const objectName = `${exportId}.zip`;
+
+    await exportZips.upload(objectName, zipBuffer, {
+      contentType: "application/zip",
+    });
+
+    const ttl = 600;
+    const { url: downloadUrl } = await exportZips.signedDownloadUrl(objectName, {
+      ttl,
+    });
+
+    const expiresAt = new Date(now.getTime() + ttl * 1000).toISOString();
+
     return {
-      zipData,
+      downloadUrl,
       filename,
+      expiresAt,
     };
   }
 );

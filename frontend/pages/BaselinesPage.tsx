@@ -283,17 +283,8 @@ export function BaselinesPage() {
         search: searchQuery || undefined,
       });
       
-      const binaryString = atob(response.zipData);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const blob = new Blob([bytes], { type: "application/zip" });
-      const url = URL.createObjectURL(blob);
-      
       const link = document.createElement("a");
-      link.href = url;
+      link.href = response.downloadUrl;
       link.download = response.filename;
       link.style.display = "none";
       
@@ -302,7 +293,6 @@ export function BaselinesPage() {
       
       setTimeout(() => {
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
       }, 250);
       
       showToast("Download started", "success");
@@ -316,19 +306,13 @@ export function BaselinesPage() {
 
   const handleCopyExportLink = async () => {
     try {
-      const params = new URLSearchParams();
-      if (filterStatus !== "all") {
-        params.set("filter", filterStatus);
-      }
-      if (searchQuery) {
-        params.set("search", searchQuery);
-      }
-      const queryString = params.toString();
-      const baseUrl = import.meta.env.VITE_API_URL || "https://ai-output-gate-d5c156k82vjumvf6738g.api.lp.dev";
-      const exportUrl = `${baseUrl}/baselines/export.zip${queryString ? `?${queryString}` : ""}`;
+      const response = await backend.baselines.exportZipBinary({
+        filter: filterStatus !== "all" ? filterStatus : undefined,
+        search: searchQuery || undefined,
+      });
       
-      await navigator.clipboard.writeText(exportUrl);
-      showToast("Export API endpoint copied to clipboard", "success");
+      await navigator.clipboard.writeText(response.downloadUrl);
+      showToast("Download link copied to clipboard (expires at " + new Date(response.expiresAt).toLocaleTimeString() + ")", "success");
     } catch (error) {
       console.error("Failed to copy link:", error);
       showToast("Failed to copy link", "error");
