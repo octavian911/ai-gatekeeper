@@ -15,6 +15,61 @@ This template includes:
 - Node.js 20+ and npm
 - Chromium browser (auto-installed by Playwright)
 
+## Installation
+
+AI Gatekeeper can be installed in two ways:
+
+### MODE A: Published Package (Recommended)
+
+When `ai-gate` is published to npm:
+
+```bash
+npm install -D ai-gate
+```
+
+Then run:
+
+```bash
+npx ai-gate run --baseURL http://localhost:3000
+```
+
+### MODE B: Local TGZ (Development/Pre-release)
+
+When testing before `ai-gate` is published to npm:
+
+**Step 1:** Build and pack the CLI from the main repository root:
+
+```bash
+# From the ai-gatekeeper repository root
+cd packages/cli
+npm run build
+npm pack
+```
+
+This creates a tarball: `ai-gate-cli-<version>.tgz`
+
+**Step 2:** Install the tarball in this template:
+
+```bash
+# From examples/repo-b-template
+npm install -D ../../packages/cli/ai-gate-cli-<version>.tgz
+```
+
+**Step 3:** Run AI Gatekeeper:
+
+```bash
+npx ai-gate run --baseURL http://localhost:3000
+```
+
+**Expected Output:**
+```
+AI Gatekeeper v1.0.0
+Running visual regression tests...
+✓ login passed
+✓ pricing passed
+All 2 screens passed
+```
+
 ## Quick Start
 
 ### 1. Install Dependencies
@@ -29,23 +84,35 @@ npm ci
 npm run build
 ```
 
-### 3. Start the Application
+### 3. Run Visual Regression Tests
+
+Use the deterministic runner script:
 
 ```bash
-npm start
+npm run test:visual
 ```
 
-The app will be available at `http://localhost:3000`
+This will:
+1. Check if port 3000 is available (kill process if needed)
+2. Start the Next.js server in background
+3. Wait for `http://localhost:3000` to be ready
+4. Run AI Gatekeeper
+5. Stop the server automatically
+6. Exit with appropriate code (0 = pass, 1 = fail)
 
-### 4. Run AI Gatekeeper
+**Manual Alternative:**
 
-In a separate terminal:
+If you prefer to manage the server yourself:
 
 ```bash
+# Terminal 1: Start the server
+npm start
+
+# Terminal 2: Run AI Gatekeeper
 npx ai-gate run --baseURL http://localhost:3000
 ```
 
-### 5. View Results
+### 4. View Results
 
 Evidence artifacts are generated at:
 ```
@@ -76,6 +143,8 @@ Evidence artifacts are generated at:
 │   │   └── baseline.png    # Login baseline image
 │   └── pricing/
 │       └── baseline.png    # Pricing baseline image
+├── scripts/
+│   └── run-visual-test.sh  # Deterministic test runner
 ├── .github/
 │   └── workflows/
 │       └── ai-gate.yml     # CI workflow
@@ -124,10 +193,13 @@ The `.github/workflows/ai-gate.yml` workflow:
 4. Installs Chromium browser
 5. Builds the Next.js app
 6. Starts the server in background
-7. Runs AI Gatekeeper
-8. Uploads evidence artifacts (always, even on failure)
+7. Waits for server to be ready (using `wait-on`)
+8. Runs AI Gatekeeper
+9. Uploads evidence artifacts (always, even on failure)
 
 **No secrets or environment variables required.**
+
+The workflow uses `wait-on` to ensure the server is fully started before running tests, preventing race conditions.
 
 ## Testing CI Failures
 
@@ -145,7 +217,20 @@ Sign in
 Log In Now
 ```
 
-2. **Commit and push**:
+2. **Run tests locally**:
+
+```bash
+npm run test:visual
+```
+
+Expected output:
+```
+✗ login failed: Visual differences detected
+Exit code: 1
+Evidence: .ai-gate/evidence/login/diff.png
+```
+
+3. **Commit and push**:
 
 ```bash
 git add app/login/page.tsx
@@ -153,7 +238,7 @@ git commit -m "Change login button text"
 git push
 ```
 
-3. **Observe CI Failure**:
+4. **Observe CI Failure**:
    - GitHub Actions workflow will fail
    - Exit code will be non-zero
    - Evidence artifacts will show:
@@ -161,7 +246,7 @@ git push
      - `current.png` - New button with "Log In Now"
      - `diff.png` - Highlighted differences
 
-4. **View Evidence**:
+5. **View Evidence**:
    - Go to Actions tab in GitHub
    - Click on the failed workflow run
    - Download the `ai-gate-evidence` artifact
@@ -199,94 +284,90 @@ npm ci
 npx playwright install chromium --with-deps
 ```
 
-### Step 3: Build and Start
+### Step 3: Install AI Gatekeeper
+
+Choose MODE A or MODE B from the Installation section above.
+
+For MODE B (local TGZ):
+```bash
+# From main repo root
+cd packages/cli
+npm run build
+npm pack
+cd ../../examples/repo-b-template
+npm install -D ../../packages/cli/ai-gate-cli-*.tgz
+```
+
+### Step 4: Build App
 
 ```bash
 npm run build
-npm start &
 ```
 
-Wait for server to start (usually ~5 seconds).
-
-### Step 4: Run Gate (Passing)
+### Step 5: Run Visual Tests (Passing)
 
 ```bash
-npx ai-gate run --baseURL http://localhost:3000
+npm run test:visual
 ```
 
 Expected output:
 ```
-✓ All screens passed visual regression testing
-Exit code: 0
+Checking if port 3000 is available...
+Starting Next.js server...
+Waiting for http://localhost:3000...
+Running AI Gatekeeper...
+✓ login passed
+✓ pricing passed
+All 2 screens passed
+Stopping server...
 ```
 
-### Step 5: Break UI and Re-run (Failing)
+Exit code: `0`
+
+### Step 6: Break UI and Re-run (Failing)
+
+Use the provided scripts:
 
 ```bash
-# Edit app/login/page.tsx line 71-75: Change "Sign in" to "Log In Now"
-npx ai-gate run --baseURL http://localhost:3000
+# Break the UI
+./scripts/break-ui.sh
+
+# Run tests again
+npm run test:visual
 ```
 
 Expected output:
 ```
-✗ Screen 'login' failed: Visual differences detected
-Exit code: 1
+...
+✗ login failed: Visual differences detected
 Evidence: .ai-gate/evidence/login/diff.png
+Exit code: 1
 ```
 
 Inspect `.ai-gate/evidence/` to see baseline/current/diff images.
 
-## Installing ai-gate CLI
-
-This template assumes `ai-gate` is available via npm. For development:
-
-### Option A: Use Published Package (Production)
-
 ```bash
-npm install -D ai-gate
+# Restore the UI
+./scripts/restore-ui.sh
 ```
-
-### Option B: Use Local Tarball (Development)
-
-From the main repository root:
-
-```bash
-cd packages/cli
-npm pack
-# Produces: ai-gate-1.0.0.tgz
-```
-
-In this template:
-
-```bash
-npm install -D /path/to/ai-gate-1.0.0.tgz
-```
-
-### Option C: Use File Reference (Development)
-
-```json
-// package.json
-{
-  "devDependencies": {
-    "ai-gate": "file:../../packages/cli"
-  }
-}
-```
-
-Then `npm install`.
 
 ## Troubleshooting
 
 ### Port Already in Use
 
-If `localhost:3000` is occupied:
+The `test:visual` script automatically handles this by killing existing processes on port 3000.
+
+If you need to manually free the port:
 
 ```bash
-# Kill existing process
 lsof -ti:3000 | xargs kill -9
+```
 
-# Or use a different port
-PORT=3001 npm start
+Or use a different port:
+
+```bash
+PORT=3001 npm start &
+npx wait-on http://localhost:3001 --timeout 60000
 npx ai-gate run --baseURL http://localhost:3001
 ```
 
@@ -302,6 +383,14 @@ Ensure Node.js 20+ is installed:
 
 ```bash
 node --version  # Should be v20.x or higher
+```
+
+### Server Timeout
+
+If `wait-on` times out, increase the timeout in the script:
+
+```bash
+npx wait-on http://localhost:3000 --timeout 120000  # 2 minutes
 ```
 
 ## Next Steps

@@ -26,9 +26,10 @@ jobs:
       - name: Build app
         run: npm run build
       
-      - name: Start app in background
+      - name: Start app and wait for readiness
         run: |
-          npm run start &
+          npm run start > /tmp/server.log 2>&1 &
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
           npx wait-on http://localhost:3000 --timeout 60000
       
       - name: Run AI Gatekeeper
@@ -41,3 +42,10 @@ jobs:
           name: ai-gate-evidence
           path: .ai-gate/evidence/
           retention-days: 30
+      
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then
+            kill $SERVER_PID 2>/dev/null || true
+          fi
