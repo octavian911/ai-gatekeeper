@@ -65,6 +65,14 @@ export async function ensureBaselinesDir(): Promise<void> {
   }
 }
 
+function deduplicateBaselines(baselines: ManifestBaseline[]): ManifestBaseline[] {
+  const map = new Map<string, ManifestBaseline>();
+  for (const baseline of baselines) {
+    map.set(baseline.screenId, baseline);
+  }
+  return Array.from(map.values());
+}
+
 export async function readManifest(): Promise<Manifest> {
   try {
     await ensureBaselinesDir();
@@ -76,6 +84,8 @@ export async function readManifest(): Promise<Manifest> {
       console.error("Manifest validation failed:", validation.errors);
       throw new Error(`Manifest corrupted: ${validation.errors?.join(", ")}`);
     }
+    
+    parsed.baselines = deduplicateBaselines(parsed.baselines);
     
     return parsed;
   } catch (error) {
@@ -126,6 +136,8 @@ async function rotateBackups(): Promise<void> {
 
 export async function writeManifest(manifest: Manifest): Promise<void> {
   await ensureBaselinesDir();
+  
+  manifest.baselines = deduplicateBaselines(manifest.baselines);
   
   const validation = validateManifest(manifest);
   if (!validation.valid) {
