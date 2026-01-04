@@ -17,14 +17,14 @@ This template includes:
 
 ## Installation
 
-AI Gatekeeper can be installed in two ways:
+AI Gatekeeper can be installed in three ways:
 
 ### MODE A: Published Package (Recommended)
 
 When `ai-gate` is published to npm:
 
 ```bash
-npm install -D ai-gate
+npm install -D @ai-gate/cli
 ```
 
 Then run:
@@ -33,9 +33,29 @@ Then run:
 npx ai-gate run --baseURL http://localhost:3000
 ```
 
-### MODE B: Local TGZ (Development/Pre-release)
+### MODE B: GitHub Release (Pre-release/Testing)
 
-When testing before `ai-gate` is published to npm:
+Install directly from GitHub Releases:
+
+```bash
+# Install latest release
+npm install -D https://github.com/YOUR-ORG/ai-gatekeeper/releases/latest/download/ai-gate-cli-1.0.0.tgz
+
+# Or install specific version
+npm install -D https://github.com/YOUR-ORG/ai-gatekeeper/releases/download/v1.0.0/ai-gate-cli-1.0.0.tgz
+```
+
+> **Note:** Check the [Releases page](https://github.com/YOUR-ORG/ai-gatekeeper/releases) for available versions and tarball names.
+
+Then run:
+
+```bash
+npx ai-gate run --baseURL http://localhost:3000
+```
+
+### MODE C: Local TGZ (Development)
+
+When testing local changes before release:
 
 **Step 1:** Build and pack the CLI from the main repository root:
 
@@ -286,9 +306,14 @@ npx playwright install chromium --with-deps
 
 ### Step 3: Install AI Gatekeeper
 
-Choose MODE A or MODE B from the Installation section above.
+Choose MODE A, MODE B, or MODE C from the Installation section above.
 
-For MODE B (local TGZ):
+For MODE B (GitHub Release):
+```bash
+npm install -D https://github.com/YOUR-ORG/ai-gatekeeper/releases/latest/download/ai-gate-cli-1.0.0.tgz
+```
+
+For MODE C (local TGZ):
 ```bash
 # From main repo root
 cd packages/cli

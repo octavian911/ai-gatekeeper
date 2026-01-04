@@ -45,9 +45,14 @@ yarn add -D @ai-gate/cli
 ### Option 2: Install from GitHub Release
 
 ```bash
-# Install from tarball URL
+# Install latest release
+npm install -D https://github.com/YOUR-ORG/ai-gatekeeper/releases/latest/download/ai-gate-cli-1.0.0.tgz
+
+# Or install specific version
 npm install -D https://github.com/YOUR-ORG/ai-gatekeeper/releases/download/v1.0.0/ai-gate-cli-1.0.0.tgz
 ```
+
+> **Note:** Check the [Releases page](https://github.com/YOUR-ORG/ai-gatekeeper/releases) for available versions and tarball names.
 
 ---
 
