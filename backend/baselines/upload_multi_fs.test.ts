@@ -238,4 +238,42 @@ describe("upload_multi_fs upsert behavior", () => {
     expect(manifest.baselines).toHaveLength(3);
     expect(manifest.baselines.map(b => b.screenId).sort()).toEqual(["dashboard", "login", "pricing"]);
   });
+
+  it("rejects duplicate screenId in same batch", async () => {
+    const imageData1 = createMockImageBuffer("settings-v1");
+    const imageData2 = createMockImageBuffer("settings-v2");
+
+    const response = await uploadMultiFs({
+      baselines: [
+        {
+          screenId: "settings",
+          name: "Settings",
+          route: "/settings",
+          tags: [],
+          viewportWidth: 1280,
+          viewportHeight: 720,
+          imageData: imageData1,
+        },
+        {
+          screenId: "settings",
+          name: "Settings Updated",
+          route: "/settings",
+          tags: ["critical"],
+          viewportWidth: 1280,
+          viewportHeight: 720,
+          imageData: imageData2,
+        },
+      ],
+    });
+
+    expect(response.success).toBe(false);
+    expect(response.uploaded).toHaveLength(1);
+    expect(response.errors).toHaveLength(1);
+    expect(response.errors[0].screenId).toBe("settings");
+    expect(response.errors[0].message).toBe("Duplicate screen ID in upload batch");
+
+    const manifest = await readManifest();
+    expect(manifest.baselines).toHaveLength(1);
+    expect(manifest.baselines[0].screenId).toBe("settings");
+  });
 });

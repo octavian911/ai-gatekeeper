@@ -106,7 +106,7 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
     const uploaded: UploadedBaseline[] = [];
     const errors: Array<{ screenId: string; message: string }> = [];
 
-    const existingBaselines = new Map(
+    const baselineMap = new Map(
       manifest.baselines.map((b) => [b.screenId, b])
     );
     const incomingIds = new Set<string>();
@@ -153,7 +153,7 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
           }
 
           const hash = await getImageHash(imageBuffer);
-          const existingBaseline = existingBaselines.get(input.screenId);
+          const existingBaseline = baselineMap.get(input.screenId);
           
           let uploadStatus: "created" | "updated" | "no_change";
           
@@ -190,19 +190,14 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
             await writeScreenConfig(input.screenId, screenConfig);
           }
 
-          if (!existingBaseline) {
-            manifest.baselines.push({
+          if (uploadStatus !== "no_change") {
+            baselineMap.set(input.screenId, {
               screenId: input.screenId,
               name: input.name,
               url: input.route,
               hash,
               tags: input.tags,
             });
-          } else {
-            existingBaseline.name = input.name;
-            existingBaseline.url = input.route;
-            existingBaseline.hash = hash;
-            existingBaseline.tags = input.tags;
           }
 
           return {
@@ -238,6 +233,9 @@ export const uploadMultiFs = api<UploadMultiRequest, UploadMultiResponse>(
     }
 
     if (uploaded.length > 0) {
+      manifest.baselines = Array.from(baselineMap.values()).sort((a, b) => 
+        a.screenId.localeCompare(b.screenId)
+      );
       await writeManifest(manifest);
     }
 
