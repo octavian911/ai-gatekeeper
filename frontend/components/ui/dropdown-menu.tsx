@@ -17,6 +17,8 @@ export interface DropdownMenuContentProps {
 export interface DropdownMenuItemProps {
   children: React.ReactNode;
   onClick?: () => void;
+  asChild?: boolean;
+  disabled?: boolean;
 }
 
 const DropdownMenuContext = React.createContext<{
@@ -99,18 +101,26 @@ export function DropdownMenuContent({ children, align = "end" }: DropdownMenuCon
   );
 }
 
-export function DropdownMenuItem({ children, onClick }: DropdownMenuItemProps) {
+export function DropdownMenuItem({ children, onClick, asChild, disabled }: DropdownMenuItemProps) {
   const { setOpen } = React.useContext(DropdownMenuContext);
 
   const handleClick = () => {
+    if (disabled) return;
     onClick?.();
     setOpen(false);
   };
 
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      onClick: handleClick,
+    } as any);
+  }
+
   return (
     <button
       onClick={handleClick}
-      className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+      disabled={disabled}
+      className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
       role="menuitem"
     >
       {children}
