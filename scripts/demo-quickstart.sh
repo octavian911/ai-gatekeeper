@@ -1,0 +1,61 @@
+#!/bin/bash
+
+set -e
+
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║                                                                ║"
+echo "║           🚀 AI OUTPUT GATE - QUICKSTART DEMO                  ║"
+echo "║                                                                ║"
+echo "║  Watch the gate catch visual regressions in 60 seconds        ║"
+echo "║                                                                ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "This demo will:"
+echo "  1. Generate 3 baseline screenshots"
+echo "  2. Introduce intentional UI drift"
+echo "  3. Run the gate and show failure with evidence pack"
+echo ""
+read -p "Press ENTER to start the demo..."
+echo ""
+
+echo "════════════════════════════════════════════════════════════════"
+echo "STEP 1/3: Seeding Baselines"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+pnpm demo:seed
+echo ""
+read -p "✅ Baselines created! Press ENTER to break the UI..."
+echo ""
+
+echo "════════════════════════════════════════════════════════════════"
+echo "STEP 2/3: Breaking the UI"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+pnpm demo:break-ui
+echo ""
+read -p "💥 UI drift introduced! Press ENTER to run the gate..."
+echo ""
+
+echo "════════════════════════════════════════════════════════════════"
+echo "STEP 3/3: Running Visual Regression Gate"
+echo "════════════════════════════════════════════════════════════════"
+echo ""
+pnpm demo:run || true
+echo ""
+
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║                     DEMO COMPLETE!                             ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
+echo "📦 Evidence pack location:"
+echo "   examples/demo-app/.ai-gate/"
+echo ""
+echo "🔍 View the diff report:"
+echo "   open examples/demo-app/.ai-gate/report.html"
+echo ""
+echo "🔧 Restore original state:"
+echo "   pnpm demo:fix-ui"
+echo ""
+echo "📚 Full documentation:"
+echo "   cat QUICKSTART_DEMO.md"
+echo ""

@@ -7,6 +7,34 @@
 
 Deterministic screenshot comparison for CI/CD with Playwright + pixel-diff engine. Phase 1 is CLI-based; zero SaaS dependencies.
 
+---
+
+> **⚡ TL;DR: Run `pnpm demo:full` to see visual regression detection in 60 seconds**
+> 
+> [📖 Full Demo Guide](./QUICKSTART_DEMO.md) | [📋 Demo Cheat Sheet](./DEMO_CHEATSHEET.md) | [📦 Delivery Summary](./QUICKSTART_DELIVERY.md)
+
+---
+
+## 🚀 60-Second Quickstart
+
+**See the gate catch visual regressions:**
+
+```bash
+pnpm install
+pnpm demo:seed      # Generate 3 baselines (20s)
+pnpm demo:break-ui  # Introduce UI drift (instant)
+pnpm demo:run       # Watch gate fail with diff evidence (15s)
+```
+
+**What you'll see:**
+- ❌ Gate FAILED - Visual regressions detected
+- 📦 Evidence pack with side-by-side diffs
+- 🔍 Interactive HTML report showing exact pixel changes
+
+👉 **[Full Quickstart Demo Guide →](./QUICKSTART_DEMO.md)**
+
+---
+
 ## What This Tool Does
 
 AI Output Gate captures pixel-perfect baseline screenshots of your frontend routes and validates them in CI to catch unintended visual changes from AI-generated code modifications. It enforces deterministic rendering (disabled animations, fixed viewport, network blocking, stable waits) to minimize flakes.
