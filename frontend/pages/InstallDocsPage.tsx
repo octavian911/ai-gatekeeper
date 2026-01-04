@@ -194,30 +194,30 @@ jobs:
             </ol>
           </section>
 
-          <section className="bg-yellow-950/50 dark:bg-yellow-900/30 border border-yellow-600 rounded-lg p-6">
+          <section className="bg-yellow-100 dark:bg-yellow-950/70 border border-yellow-600 dark:border-yellow-600/50 rounded-lg p-6">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mt-1 flex-shrink-0" />
+              <AlertCircle className="w-6 h-6 text-yellow-700 dark:text-yellow-400 mt-1 flex-shrink-0" />
               <div>
-                <h2 className="text-xl font-bold text-yellow-900 dark:text-yellow-200 mb-3">Troubleshooting</h2>
+                <h2 className="text-xl font-bold text-yellow-950 dark:text-yellow-100 mb-3">Troubleshooting</h2>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-bold text-yellow-900 dark:text-yellow-100 mb-1">1. baseURL not reachable</h3>
-                    <p className="text-yellow-800 dark:text-yellow-200 text-sm">
+                    <h3 className="font-bold text-yellow-950 dark:text-yellow-100 mb-1">1. baseURL not reachable</h3>
+                    <p className="text-yellow-900 dark:text-yellow-200 text-sm">
                       Ensure your application is running and accessible at the specified URL before running the gate.
-                      Use <code className="bg-yellow-900/50 dark:bg-yellow-950 px-2 py-1 rounded">curl http://localhost:3000</code> to verify.
+                      Use <code className="bg-yellow-200 dark:bg-yellow-900/70 text-yellow-950 dark:text-yellow-100 px-2 py-1 rounded">curl http://localhost:3000</code> to verify.
                     </p>
                   </div>
                   <div>
-                    <h3 className="font-bold text-yellow-900 dark:text-yellow-100 mb-1">2. Missing baselines/manifest.json</h3>
-                    <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                      The gate requires baseline screenshots to compare against. Create the <code className="bg-yellow-900/50 dark:bg-yellow-950 px-2 py-1 rounded">baselines/</code> folder
-                      with a <code className="bg-yellow-900/50 dark:bg-yellow-950 px-2 py-1 rounded">manifest.json</code> file and baseline PNGs before running.
+                    <h3 className="font-bold text-yellow-950 dark:text-yellow-100 mb-1">2. Missing baselines/manifest.json</h3>
+                    <p className="text-yellow-900 dark:text-yellow-200 text-sm">
+                      The gate requires baseline screenshots to compare against. Create the <code className="bg-yellow-200 dark:bg-yellow-900/70 text-yellow-950 dark:text-yellow-100 px-2 py-1 rounded">baselines/</code> folder
+                      with a <code className="bg-yellow-200 dark:bg-yellow-900/70 text-yellow-950 dark:text-yellow-100 px-2 py-1 rounded">manifest.json</code> file and baseline PNGs before running.
                     </p>
                   </div>
                   <div>
-                    <h3 className="font-bold text-yellow-900 dark:text-yellow-100 mb-1">3. Playwright browser install missing</h3>
-                    <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                      Run <code className="bg-yellow-900/50 dark:bg-yellow-950 px-2 py-1 rounded">npx playwright install chromium --with-deps</code> to install
+                    <h3 className="font-bold text-yellow-950 dark:text-yellow-100 mb-1">3. Playwright browser install missing</h3>
+                    <p className="text-yellow-900 dark:text-yellow-200 text-sm">
+                      Run <code className="bg-yellow-200 dark:bg-yellow-900/70 text-yellow-950 dark:text-yellow-100 px-2 py-1 rounded">npx playwright install chromium --with-deps</code> to install
                       the required browser binaries. This is needed both locally and in CI.
                     </p>
                   </div>
