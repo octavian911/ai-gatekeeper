@@ -4,8 +4,7 @@
   "type": "module",
   "packageManager": "bun",
   "workspaces": [
-    "packages/*",
-    "examples/*",
-    "apps/*"
+    "backend",
+    "frontend"
   ]
 }
