@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Database, Settings, Shield } from "lucide-react";
+import { LayoutDashboard, Database, Settings, Shield, BookOpen } from "lucide-react";
+import { DocsDropdown } from "./DocsDropdown";
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,6 +13,7 @@ export function Layout({ children }: LayoutProps) {
   const navItems = [
     { path: "/baselines", label: "Baselines", icon: Database },
     { path: "/reviews", label: "QA Reviews", icon: Shield },
+    { path: "/docs/install", label: "Docs", icon: BookOpen },
   ];
 
   return (
@@ -28,7 +30,8 @@ export function Layout({ children }: LayoutProps) {
         <nav className="flex-1 p-3">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || 
+                           (item.path === "/docs/install" && location.pathname.startsWith("/docs"));
             return (
               <Link
                 key={item.path}
@@ -46,7 +49,12 @@ export function Layout({ children }: LayoutProps) {
           })}
         </nav>
       </aside>
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto flex flex-col">
+        <header className="bg-card border-b border-border px-6 py-3 flex justify-end">
+          <DocsDropdown />
+        </header>
+        <div className="flex-1 overflow-auto">{children}</div>
+      </main>
     </div>
   );
 }

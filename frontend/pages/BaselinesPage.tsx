@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import backend from "~backend/client";
 import { BaselineCard } from "../components/BaselineCard";
 import { BaselineUploadModal, BaselineInput } from "../components/BaselineUploadModal";
 import { ImportZipModal } from "../components/ImportZipModal";
 import { BaselinePreviewDrawer } from "../components/BaselinePreviewDrawer";
 import { ReviewerGuidancePanel } from "../components/ReviewerGuidancePanel";
-import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, GitBranch, Download, Link } from "lucide-react";
+import { Search, RefreshCw, CheckCircle2, XCircle, AlertCircle, Upload, FileArchive, GitBranch, Download, Link, HelpCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import type { BaselineMetadata } from "~backend/baselines/list_fs";
 import { useToast } from "../hooks/useToast";
@@ -395,7 +396,7 @@ export function BaselinesPage() {
       )}
 
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold text-primary mb-2">Baseline Management</h1>
             <p className="text-secondary">
@@ -419,6 +420,17 @@ export function BaselinesPage() {
             <Link className="size-4" />
           </Button>
         </div>
+        </div>
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-2 text-sm">
+            <HelpCircle className="size-4 text-blue-400 flex-shrink-0" />
+            <span className="text-blue-200">
+              Need help installing AI Gatekeeper in your repo?{" "}
+              <RouterLink to="/docs/install" className="underline font-semibold hover:text-blue-100">
+                View installation guide
+              </RouterLink>
+            </span>
+          </div>
         </div>
         <div className="bg-surface">
           <ReviewerGuidancePanel />

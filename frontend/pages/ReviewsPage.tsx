@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import backend from "~backend/client";
 import type { ReviewItem } from "~backend/runs/list_reviews";
-import { CheckCircle2, XCircle, Clock, AlertCircle, GitBranch, GitCommit } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, AlertCircle, GitBranch, GitCommit, HelpCircle } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { useToast } from "../hooks/useToast";
@@ -69,11 +69,23 @@ export function ReviewsPage() {
     <div className="p-8">
       <ToastContainer />
       
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-primary mb-2">QA Review Dashboard</h1>
         <p className="text-secondary">
           Review visual regression test results and approve or reject changes.
         </p>
+      </div>
+
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-6">
+        <div className="flex items-center gap-2 text-sm">
+          <HelpCircle className="size-4 text-blue-400 flex-shrink-0" />
+          <span className="text-blue-200">
+            Need help installing AI Gatekeeper in your repo?{" "}
+            <RouterLink to="/docs/install" className="underline font-semibold hover:text-blue-100">
+              View installation guide
+            </RouterLink>
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
