@@ -788,6 +788,8 @@ This deterministic approach dramatically reduces false positives, achieving our 
     └── nightly-flake.yml   # Flake rate tracker
 ```
 
+**Frontend Routing:** Deep links are fully supported via Encore.ts's built-in SPA fallback mechanism. All routes (`/baselines`, `/docs/*`, etc.) work correctly on hard refresh without redirecting to `/`.
+
 ---
 
 ## GitHub Actions Integration
