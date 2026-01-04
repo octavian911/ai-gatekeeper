@@ -355,6 +355,7 @@ Troubleshooting:
       );
 
       await generateHTMLReport(summary, outDir);
+      await generateIndexHTML(summary, outDir);
 
       console.log(chalk.bold('\n📊 Run Summary:'));
       console.log(`  Total:  ${summary.total}`);
@@ -395,7 +396,7 @@ async function generateHTMLReport(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Output Gate Run Report</title>
+  <title>AI Gatekeeper Evidence Report</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -412,7 +413,8 @@ async function generateHTMLReport(
       margin-bottom: 2rem;
       border: 1px solid #2a2a3e;
     }
-    h1 { color: #fff; margin-bottom: 0.5rem; }
+    h1 { color: #fff; margin-bottom: 0.5rem; font-size: 2rem; }
+    .subtitle { color: #9ca3af; font-size: 0.95rem; margin-bottom: 1rem; }
     .header-badges {
       display: flex;
       align-items: center;
@@ -568,7 +570,8 @@ async function generateHTMLReport(
 <body>
   <div class="container">
     <div class="header">
-      <h1>🛡️ AI Output Gate Run Report</h1>
+      <h1>🛡️ AI Gatekeeper Evidence Report</h1>
+      <p class="subtitle">Visual regression detection for AI-generated code changes</p>
       <div class="header-badges">
         <span class="badge pass">PASS: ${summary.passed}</span>
         <span class="badge warn">WARN: ${summary.warned}</span>
@@ -646,6 +649,223 @@ async function generateHTMLReport(
   `;
 
   await fs.writeFile(path.join(outDir, 'report.html'), html);
+}
+
+async function generateIndexHTML(summary: RunSummary, outDir: string): Promise<void> {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Gatekeeper Evidence - ${summary.runId}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      border: 1px solid #2a2a3e;
+      text-align: center;
+    }
+    h1 { color: #fff; margin-bottom: 0.75rem; font-size: 2.5rem; }
+    .subtitle { color: #9ca3af; margin-bottom: 1.5rem; }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .meta-item {
+      background: #0a0a0a;
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid #2a2a3e;
+    }
+    .meta-label { color: #9ca3af; font-size: 0.875rem; margin-bottom: 0.25rem; }
+    .meta-value { color: #fff; font-weight: 600; font-family: monospace; }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+    .summary-card {
+      background: #1a1a2e;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #2a2a3e;
+      text-align: center;
+    }
+    .summary-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .summary-value.pass { color: #10b981; }
+    .summary-value.warn { color: #f59e0b; }
+    .summary-value.fail { color: #ef4444; }
+    .summary-value.total { color: #60a5fa; }
+    .summary-label { color: #9ca3af; text-transform: uppercase; font-size: 0.875rem; }
+    .screens {
+      background: #1a1a2e;
+      border-radius: 8px;
+      border: 1px solid #2a2a3e;
+      padding: 2rem;
+    }
+    .screens h2 { color: #fff; margin-bottom: 1.5rem; }
+    .screen-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .screen-table th {
+      background: #0a0a0a;
+      color: #9ca3af;
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      border-bottom: 2px solid #2a2a3e;
+    }
+    .screen-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #2a2a3e;
+    }
+    .screen-table tr:hover {
+      background: #16213e;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .status-badge.pass { background: #10b981; color: white; }
+    .status-badge.warn { background: #f59e0b; color: white; }
+    .status-badge.fail { background: #ef4444; color: white; }
+    .screen-name { color: #fff; font-weight: 600; }
+    .screen-url { color: #9ca3af; font-size: 0.875rem; font-family: monospace; }
+    .originality { color: #60a5fa; font-family: monospace; font-weight: 600; }
+    .view-link {
+      color: #60a5fa;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .view-link:hover { color: #3b82f6; }
+    .footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid #2a2a3e;
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🛡️ AI Gatekeeper</h1>
+      <p class="subtitle">Visual Regression Evidence Report</p>
+      <div class="meta">
+        <div class="meta-item">
+          <div class="meta-label">Run ID</div>
+          <div class="meta-value">${summary.runId}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Timestamp</div>
+          <div class="meta-value">${new Date(summary.timestamp).toLocaleString()}</div>
+        </div>
+        ${summary.sha ? `
+        <div class="meta-item">
+          <div class="meta-label">Commit SHA</div>
+          <div class="meta-value">${summary.sha.substring(0, 8)}</div>
+        </div>
+        ` : ''}
+        ${summary.branch ? `
+        <div class="meta-item">
+          <div class="meta-label">Branch</div>
+          <div class="meta-value">${summary.branch}</div>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="summary-card">
+        <div class="summary-value total">${summary.total}</div>
+        <div class="summary-label">Total Screens</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value pass">${summary.passed}</div>
+        <div class="summary-label">Passed</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value warn">${summary.warned}</div>
+        <div class="summary-label">Warned</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-value fail">${summary.failed}</div>
+        <div class="summary-label">Failed</div>
+      </div>
+    </div>
+
+    <div class="screens">
+      <h2>Screen Results</h2>
+      <table class="screen-table">
+        <thead>
+          <tr>
+            <th>Screen</th>
+            <th>URL</th>
+            <th>Status</th>
+            <th>Originality</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${summary.results.map((r) => `
+            <tr>
+              <td>
+                <div class="screen-name">${r.screenId}</div>
+                <div class="screen-url" style="margin-top: 0.25rem;">${r.name}</div>
+              </td>
+              <td class="screen-url">${r.url}</td>
+              <td>
+                <span class="status-badge ${r.status.toLowerCase()}">${r.status}</span>
+              </td>
+              <td class="originality">${r.originalityPercent.toFixed(2)}%</td>
+              <td>
+                <a href="report.html#${r.screenId}" class="view-link">View →</a>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <p>This report works offline. All assets are bundled.</p>
+      <p style="margin-top: 0.5rem;">Generated by AI Gatekeeper - Visual regression testing for AI-generated code</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  await fs.writeFile(path.join(outDir, 'index.html'), html);
 }
 
 function generateResultItem(result: ScreenResult): string {

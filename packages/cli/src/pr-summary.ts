@@ -62,15 +62,26 @@ export function formatPRSummary(data: PRSummaryData): string {
   }
 
   lines.push('');
-  lines.push('### Where to Find Evidence Artifacts');
+  lines.push('### How to Download Evidence');
   lines.push('');
-  lines.push('To view detailed comparison images and reports:');
+  lines.push('The evidence bundle includes side-by-side comparison images and an interactive HTML report:');
   lines.push('');
   lines.push('1. Go to the **Checks** tab on this PR');
-  lines.push('2. Click on the workflow job that ran the visual tests');
-  lines.push('3. Scroll to the **Artifacts** section');
-  lines.push('4. Download the `ai-gate-evidence` artifact');
-  lines.push('5. Unzip and open `report.html` to review all comparisons');
+  lines.push('2. Click on the workflow run that executed the visual tests');
+  lines.push('3. Scroll to the **Artifacts** section at the bottom');
+  lines.push('4. Download the `ai-gate-evidence` artifact (ZIP file)');
+  lines.push('5. Unzip and open `index.html` or `report.html` in a browser');
+  lines.push('');
+  lines.push('The report works offline and shows:');
+  lines.push('- Run summary with commit SHA and status counts');
+  lines.push('- Per-screen comparisons: Baseline / Current / Diff overlay');
+  lines.push('- Originality % and detailed pixel metrics');
+  lines.push('');
+  if (process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID) {
+    const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+    lines.push(`📎 [View workflow run and download artifacts](${runUrl})`);
+    lines.push('');
+  }
 
   return lines.join('\n');
 }
