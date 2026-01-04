@@ -1,14 +1,18 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { exportZipFs } from "./export_zip_fs";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "fs/promises";
 import path from "path";
+import os from "os";
 import AdmZip from "adm-zip";
 
-const BASELINES_DIR = "/baselines";
+let tmpDir: string;
+let BASELINES_DIR: string;
 
 describe("exportZipFs", () => {
   beforeEach(async () => {
-    await fs.mkdir(BASELINES_DIR, { recursive: true });
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ai-gate-baselines-"));
+    BASELINES_DIR = tmpDir;
+    process.env.AI_GATE_BASELINES_DIR = tmpDir;
+    vi.resetModules();
     await fs.mkdir(path.join(BASELINES_DIR, "screen-01"), { recursive: true });
 
     const manifest = {
@@ -43,7 +47,13 @@ describe("exportZipFs", () => {
     );
   });
 
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+    delete process.env.AI_GATE_BASELINES_DIR;
+  });
+
   it("returns base64-encoded ZIP data", async () => {
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({});
 
     expect(response.zipData).toBeTruthy();
@@ -54,12 +64,14 @@ describe("exportZipFs", () => {
   });
 
   it("returns filename with timestamp", async () => {
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({});
 
     expect(response.filename).toMatch(/^baselines-export-\d{8}-\d{4}\.zip$/);
   });
 
   it("returns valid ZIP with manifest.json", async () => {
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({});
 
     const buffer = Buffer.from(response.zipData, "base64");
@@ -74,6 +86,7 @@ describe("exportZipFs", () => {
   });
 
   it("returns valid ZIP with baseline image", async () => {
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({});
 
     const buffer = Buffer.from(response.zipData, "base64");
@@ -84,6 +97,7 @@ describe("exportZipFs", () => {
   });
 
   it("returns valid ZIP with README.txt", async () => {
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({});
 
     const buffer = Buffer.from(response.zipData, "base64");
@@ -125,6 +139,7 @@ describe("exportZipFs", () => {
       Buffer.from("fake-image-data")
     );
 
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({ filter: "validated" });
 
     const buffer = Buffer.from(response.zipData, "base64");
@@ -165,6 +180,7 @@ describe("exportZipFs", () => {
       Buffer.from("fake-image-data")
     );
 
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({ filter: "invalid" });
 
     const buffer = Buffer.from(response.zipData, "base64");
@@ -199,6 +215,7 @@ describe("exportZipFs", () => {
       JSON.stringify(manifest, null, 2)
     );
 
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({ search: "Home" });
 
     const buffer = Buffer.from(response.zipData, "base64");
@@ -212,6 +229,7 @@ describe("exportZipFs", () => {
   });
 
   it("includes filter and search info in README", async () => {
+    const { exportZipFs } = await import("./export_zip_fs");
     const response = await exportZipFs({ filter: "validated", search: "test" });
 
     const buffer = Buffer.from(response.zipData, "base64");

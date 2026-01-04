@@ -3,7 +3,12 @@ import path from "path";
 import crypto from "crypto";
 import { z } from "zod";
 
-const BASELINES_DIR = "/baselines";
+const DEFAULT_BASELINES_DIR = path.resolve(process.cwd(), "baselines");
+
+export const BASELINES_DIR = process.env.AI_GATE_BASELINES_DIR
+  ? path.resolve(process.env.AI_GATE_BASELINES_DIR)
+  : DEFAULT_BASELINES_DIR;
+
 const MANIFEST_PATH = path.join(BASELINES_DIR, "manifest.json");
 const MANIFEST_BACKUP_DIR = path.join(BASELINES_DIR, ".backups");
 const POLICY_PATH = "/.gate/policy.json";

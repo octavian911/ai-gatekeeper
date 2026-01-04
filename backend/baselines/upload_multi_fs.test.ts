@@ -1,11 +1,9 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { uploadMultiFs } from "./upload_multi_fs";
-import {
-  readManifest,
-  writeManifest,
-  writeBaselineImage,
-  getImageHash,
-} from "./filesystem";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "fs/promises";
+import path from "path";
+import os from "os";
+
+let tmpDir: string;
 
 const createMockImageBuffer = (content: string): string => {
   const pngHeader = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -16,11 +14,22 @@ const createMockImageBuffer = (content: string): string => {
 
 describe("upload_multi_fs upsert behavior", () => {
   beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ai-gate-baselines-"));
+    process.env.AI_GATE_BASELINES_DIR = tmpDir;
+    vi.resetModules();
+    const { writeManifest } = await import("./filesystem");
     const emptyManifest = { baselines: [] };
     await writeManifest(emptyManifest);
   });
 
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+    delete process.env.AI_GATE_BASELINES_DIR;
+  });
+
   it("creates new baseline on first upload", async () => {
+    const { uploadMultiFs } = await import("./upload_multi_fs");
+    const { readManifest } = await import("./filesystem");
     const imageData = createMockImageBuffer("login-v1");
 
     const response = await uploadMultiFs({
@@ -48,6 +57,8 @@ describe("upload_multi_fs upsert behavior", () => {
   });
 
   it("updates existing baseline when uploading same screenId with different content", async () => {
+    const { uploadMultiFs } = await import("./upload_multi_fs");
+    const { readManifest } = await import("./filesystem");
     const imageData1 = createMockImageBuffer("login-v1");
     const imageData2 = createMockImageBuffer("login-v2-different");
 
@@ -96,6 +107,8 @@ describe("upload_multi_fs upsert behavior", () => {
   });
 
   it("returns no_change when uploading identical content", async () => {
+    const { uploadMultiFs } = await import("./upload_multi_fs");
+    const { readManifest } = await import("./filesystem");
     const imageData = createMockImageBuffer("login-v1");
 
     await uploadMultiFs({
@@ -140,6 +153,8 @@ describe("upload_multi_fs upsert behavior", () => {
   });
 
   it("prevents duplicate entries in manifest when uploading same screenId twice", async () => {
+    const { uploadMultiFs } = await import("./upload_multi_fs");
+    const { readManifest } = await import("./filesystem");
     const imageData1 = createMockImageBuffer("dashboard-v1");
     const imageData2 = createMockImageBuffer("dashboard-v2");
 
@@ -178,6 +193,8 @@ describe("upload_multi_fs upsert behavior", () => {
   });
 
   it("handles mixed batch with new and existing baselines", async () => {
+    const { uploadMultiFs } = await import("./upload_multi_fs");
+    const { readManifest } = await import("./filesystem");
     const loginData = createMockImageBuffer("login-v1");
     const dashboardData = createMockImageBuffer("dashboard-v1");
     const pricingData = createMockImageBuffer("pricing-v1");
@@ -240,6 +257,8 @@ describe("upload_multi_fs upsert behavior", () => {
   });
 
   it("rejects duplicate screenId in same batch", async () => {
+    const { uploadMultiFs } = await import("./upload_multi_fs");
+    const { readManifest } = await import("./filesystem");
     const imageData1 = createMockImageBuffer("settings-v1");
     const imageData2 = createMockImageBuffer("settings-v2");
 
