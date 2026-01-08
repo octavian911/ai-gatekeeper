@@ -7,17 +7,23 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - uses: oven-sh/setup-bun@v2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: "latest"
 
-      - name: Write service account key
+      - name: Restore service account key
+        env:
+          FIREBASE_SERVICE_ACCOUNT_B64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}
         run: |
           mkdir -p .secrets
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > .secrets/firebase-sa.json
+          echo "$FIREBASE_SERVICE_ACCOUNT_B64" | base64 -d > .secrets/firebase-sa.json
+          chmod 600 .secrets/firebase-sa.json
 
       - name: Build landing
         run: |
@@ -35,5 +41,6 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/.secrets/firebase-sa.json
         run: |
-                   npx firebase-tools@latest deploy --only hosting --project ai-gatekeeper-ea724
-                   
+          npx -y firebase-tools@latest deploy \
+            --project ai-gatekeeper-ea724 \
+            --only hosting:landing,hosting:app
