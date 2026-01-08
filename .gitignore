@@ -18,3 +18,10 @@ node_modules/
 .env
 .env.*
 .DS_Store
+
+.firebase/
+**/dist/
+node_modules/
+.env
+.env.*
+.DS_Store
