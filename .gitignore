@@ -25,3 +25,5 @@ node_modules/
 .env
 .env.*
 .DS_Store
+.secrets/
+firebase-debug.log
