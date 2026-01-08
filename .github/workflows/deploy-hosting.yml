@@ -35,4 +35,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/.secrets/firebase-sa.json
         run: |
-          npx firebase-tools@latest deploy --only hosting --project ai-gatekeeper-ea724
+                   npx firebase-tools@latest deploy --only hosting --project ai-gatekeeper-ea724
+                   
