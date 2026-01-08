@@ -1,0 +1,38 @@
+name: Deploy Firebase Hosting (landing + app)
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "latest"
+
+      - name: Write service account key
+        run: |
+          mkdir -p .secrets
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > .secrets/firebase-sa.json
+
+      - name: Build landing
+        run: |
+          cd landing
+          bun install
+          bun run build
+
+      - name: Build app
+        run: |
+          cd frontend
+          bun install
+          bun run build
+
+      - name: Deploy landing + app
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/.secrets/firebase-sa.json
+        run: |
+          npx firebase-tools@latest deploy --only hosting --project ai-gatekeeper-ea724
