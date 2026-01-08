@@ -1,0 +1,19 @@
+{
+  "projects": {
+    "default": "ai-gatekeeper-ea724",
+    "prod": "ai-gatekeeper-ea724"
+  },
+  "targets": {
+    "ai-gatekeeper-ea724": {
+      "hosting": {
+        "landing": [
+          "ai-gatekeeper-landing"
+        ],
+        "app": [
+          "ai-gatekeeper-app"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
