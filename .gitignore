@@ -4,26 +4,3 @@ encore.gen.cue
 /.encore
 node_modules
 /encore.gen
-
-# Firebase local cache
-.firebase/
-
-# Build outputs
-**/dist/
-
-# Node
-node_modules/
-
-# Env
-.env
-.env.*
-.DS_Store
-
-.firebase/
-**/dist/
-node_modules/
-.env
-.env.*
-.DS_Store
-.secrets/
-firebase-debug.log
