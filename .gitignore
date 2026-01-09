@@ -4,3 +4,25 @@ encore.gen.cue
 /.encore
 node_modules
 /encore.gen
+
+# Firebase local cache
+.firebase/
+
+# Build outputs
+**/dist/
+apps/web/.next/
+
+# Local security outputs
+security-reports/
+policy.json
+
+# Firebase local cache
+.firebase/
+
+# Build outputs
+**/dist/
+apps/web/.next/
+
+# Local security outputs
+security-reports/
+policy.json
