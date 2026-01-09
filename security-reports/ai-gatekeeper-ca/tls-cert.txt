@@ -1,0 +1,4 @@
+issuer=C = US, O = Let's Encrypt, CN = E7
+subject=CN = ai-gatekeeper.ca
+notBefore=Jan  8 15:53:43 2026 GMT
+notAfter=Apr  8 15:53:42 2026 GMT

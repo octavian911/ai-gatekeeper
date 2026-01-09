@@ -1,0 +1,16 @@
+HTTP/2 301 
+alt-svc: h3=":443"; ma=2592000
+location: https://www.ai-gatekeeper.ca/
+server: Caddy
+date: Fri, 09 Jan 2026 15:50:02 GMT
+
+HTTP/2 200 
+date: Fri, 09 Jan 2026 15:50:02 GMT
+content-type: text/html
+cache-control: public, max-age=60, s-maxage=604800
+vary: accept-encoding
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=lYonmF0mNOtIOKvZAIUzQLsAMTHPB6yUtRLiISPmglOq%2FWrlUeZ0Nl72gy8JNaYFs3Lqi80Nla6pFmj%2BYPF4wu2vXZDGyNrE%2FTSEmH%2F3lpCJlAs%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: 9bb51687c80eba46-SEA
+

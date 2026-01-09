@@ -6,5 +6,8 @@
   "workspaces": [
     "backend",
     "frontend"
-  ]
+  ],
+  "devDependencies": {
+    "eslint": "^9.39.2"
+  }
 }

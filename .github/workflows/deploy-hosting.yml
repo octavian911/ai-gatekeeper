@@ -3,6 +3,7 @@ name: Deploy Firebase Hosting (landing + app)
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -17,30 +18,71 @@ jobs:
         with:
           bun-version: "latest"
 
+      # --- Auth: restore service account JSON from a BASE64 secret ---
+      # Secret name: FIREBASE_SERVICE_ACCOUNT_B64
       - name: Restore service account key
-        env:
-          FIREBASE_SERVICE_ACCOUNT_B64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p .secrets
-          echo "$FIREBASE_SERVICE_ACCOUNT_B64" | base64 -d > .secrets/firebase-sa.json
-          chmod 600 .secrets/firebase-sa.json
+          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" ]; then
+            echo "Missing secret: FIREBASE_SERVICE_ACCOUNT_B64" >&2
+            exit 1
+          fi
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}" | base64 --decode > .secrets/firebase-sa.json
+          # Validate JSON (fails fast if secret is wrong)
+          node -e "JSON.parse(require('fs').readFileSync('.secrets/firebase-sa.json','utf8')); console.log('Service account JSON OK')"
 
+      # --- Build: landing ---
       - name: Build landing
+        shell: bash
         run: |
+          set -euo pipefail
           cd landing
-          bun install
+          bun install --frozen-lockfile || bun install
           bun run build
 
+      # --- Build: app ---
       - name: Build app
+        shell: bash
         run: |
+          set -euo pipefail
           cd frontend
-          bun install
+          bun install --frozen-lockfile || bun install
           bun run build
 
-      - name: Deploy landing + app
+      # --- Security: OSV scan (repo-wide) ---
+      - name: OSV scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Install osv-scanner
+          curl -sSfL https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 -o osv-scanner
+          chmod +x osv-scanner
+          ./osv-scanner -r .
+
+      # --- Security: npm audit for deployed app (frontend) ---
+      # npm audit needs package-lock.json, so we generate one safely.
+      - name: npm audit (frontend)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm install --package-lock-only
+          npm audit --omit=dev
+
+      # --- Deploy ---
+      - name: Deploy Hosting (landing + app)
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/.secrets/firebase-sa.json
+        shell: bash
         run: |
-          npx -y firebase-tools@latest deploy \
-            --project ai-gatekeeper-ea724 \
-            --only hosting:landing,hosting:app
+          set -euo pipefail
+          npx -y firebase-tools@latest deploy --only hosting --project ai-gatekeeper-ea724
+
+      # --- Cleanup ---
+      - name: Cleanup secrets
+        if: always()
+        shell: bash
+        run: |
+          rm -rf .secrets

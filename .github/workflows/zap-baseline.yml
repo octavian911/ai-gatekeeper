@@ -1,0 +1,27 @@
+name: ZAP Baseline Scans
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"   # weekly, Monday 06:00 UTC
+
+jobs:
+  business_site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ZAP Baseline - Business Site
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: "https://ai-gatekeeper.ca"
+          cmd_options: "-a"
+          allow_issue_writing: false
+
+  app_site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ZAP Baseline - App Site
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: "https://app.ai-gatekeeper.ca"
+          cmd_options: "-a"
+          allow_issue_writing: false
