@@ -26,3 +26,14 @@ apps/web/.next/
 # Local security outputs
 security-reports/
 policy.json
+
+# Dependencies / builds / caches
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.next/
+**/.next/
+.firebase/
+security-reports/
+tmp/
