@@ -49,3 +49,4 @@ frontend/dist/
 frontend/.env.development
 frontend/.env.development.bak
 frontend/.env.*.local
+frontend/package-lock.json
