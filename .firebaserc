@@ -7,9 +7,6 @@
     "ai-gatekeeper-ea724": {
       "hosting": {
         "landing": [
-          "ai-gatekeeper-landing"
-        ],
-        "app": [
           "ai-gatekeeper-app"
         ]
       }
