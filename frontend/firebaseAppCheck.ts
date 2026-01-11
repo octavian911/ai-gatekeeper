@@ -100,3 +100,25 @@ export async function ensureSignedIn(): Promise<void> {
     }, reject);
   });
 }
+
+/**
+ * Returns headers needed for authenticated API calls.
+ * - Uses Firebase Auth ID token (works for anonymous users too, if anonymous auth is enabled).
+ */
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
+  try {
+    // Lazy import to avoid affecting init order in some builds
+    const { getAuth } = await import("firebase/auth");
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (user) {
+      const token = await user.getIdToken();
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  } catch (e) {
+    // Don't hard-fail the UI just because auth headers can't be produced.
+    console.warn("getAuthHeaders() failed:", e);
+  }
+  return headers;
+}
