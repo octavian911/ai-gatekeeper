@@ -1,4 +1,5 @@
 import { initAppCheck } from "./firebaseAppCheck";
+import { getAuthHeaders } from "./firebaseAppCheck";
 
 if (import.meta.env.DEV) { (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true; }
 initAppCheck();
@@ -142,7 +143,8 @@ export namespace baselines {
 
         public async deleteBaseline(params: { screenId: string }): Promise<ResponseType<typeof api_baselines_delete_deleteBaseline>> {
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/baselines/${encodeURIComponent(params.screenId)}`, {method: "DELETE", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/baselines/${
+encodeURIComponent(params.screenId)}`, {method: "DELETE", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_baselines_delete_deleteBaseline>
         }
 
@@ -731,9 +733,18 @@ class BaseClient {
 
     // callTypedAPI makes an API call, defaulting content type to "application/json"
     public async callTypedAPI(path: string, params?: CallParameters): Promise<Response> {
+    // __API_PREFIX_PATCH__
+    // Force API calls through Firebase Hosting rewrite: /api/** -> function "api"
+    // Avoid double-prefix and ignore absolute URLs.
+    if (!/^https?:\/\//.test(path) && !path.startsWith("/api/")) {
+      path = "/api" + (path.startsWith("/") ? path : "/" + path);
+    }
+
+    const authHeaders = await getAuthHeaders();
+
         return this.callAPI(path, {
             ...params,
-            headers: { "Content-Type": "application/json", ...params?.headers }
+            headers: { ...authHeaders,  "Content-Type": "application/json", ...params?.headers }
         });
     }
 
