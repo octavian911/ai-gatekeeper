@@ -37,3 +37,15 @@ dist/
 .firebase/
 security-reports/
 tmp/
+frontend/.env
+# Local scratch + backups
+scripts/_scratch/
+*.bak
+*.bak.*
+.firebase/*
+# Build outputs (generated)
+frontend/dist/
+# Local env (do not commit secrets)
+frontend/.env.development
+frontend/.env.development.bak
+frontend/.env.*.local
