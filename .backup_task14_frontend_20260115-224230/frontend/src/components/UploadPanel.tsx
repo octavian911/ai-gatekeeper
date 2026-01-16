@@ -1,20 +1,3 @@
-
-// __AGK_AUTH_HEADERS_V1__
-async function __agkGetAuthHeaders() {
-  try {
-    const { getAuth } = await import("firebase/auth");
-    const auth = getAuth();
-    const deadline = Date.now() + 6000;
-    while (!auth.currentUser && Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 200));
-    }
-    if (!auth.currentUser) return {};
-    const tok = await auth.currentUser.getIdToken();
-    return { Authorization: "Bearer " + tok };
-  } catch (e) {
-    return {};
-  }
-}
 import React, { useMemo, useState } from "react";
 import { getAuthHeaders } from "../../firebaseAppCheck";
 

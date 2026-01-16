@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import Busboy from "busboy";
 import { Storage } from "@google-cloud/storage";
+import { initializeApp as initAdmin } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import path from "path";
 import * as admin from "firebase-admin";
 
@@ -10,48 +12,10 @@ import * as admin from "firebase-admin";
 // Firebase Admin init (required for admin.storage())
 admin.initializeApp();
 
-/**
- * __AGK_EARLY_NORMALIZERS__
- * Fix two production blockers:
- *  (1) normalize /api/api/* -> /api/* before routing
- *  (2) normalize Authorization header access so middleware doesn't miss it
- */
-try {
-  // NOTE: Express lowercases req.headers keys. Always use req.get('authorization') / req.headers.authorization.
-  // Also, requests can arrive as /api/api/... due to frontend drift; normalize early.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const _agkInstall = (app: any) => {
-    app.use((req: any, _res: any, next: any) => {
-      try {
-        // Normalize /api/api/... -> /api/...
-        if (typeof req.url === "string") {
-          req.url = req.url.replace(/^\/api\/api\//, "/api/");
-          req.url = req.url.replace(/^\/api\/api(?=\/|$)/, "/api");
-        }
-        if (typeof req.originalUrl === "string") {
-          req.originalUrl = req.originalUrl.replace(/^\/api\/api\//, "/api/");
-          req.originalUrl = req.originalUrl.replace(/^\/api\/api(?=\/|$)/, "/api");
-        }
-
-        // Normalize Authorization header into req.headers.authorization
-        const a = (req.get && (req.get("authorization") || req.get("Authorization"))) || req.headers?.authorization;
-        if (a && !req.headers.authorization) req.headers.authorization = a;
-      } catch (e: any) {}
-      next();
-    });
-  };
-
-  // Attempt to hook into the common "app" variable if it exists
-  // If your app variable name differs, the middleware below is still harmless (no throw).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const g: any = globalThis as any;
-  if (typeof (g as any).app !== "undefined") {
-    _agkInstall((g as any).app);
-  }
-} catch (e: any) {}
-
-
 // Admin SDK
+initAdmin();
+const auth = getAuth();
+
 // Storage
 const storage = new Storage();
 
@@ -81,216 +45,23 @@ function safeFileName(name: string): string {
 
 type AuthedReq = express.Request & { uid?: string };
 
-
-function agkReadAuthHeader(req: any): string {
-  const h =
-    (req?.headers?.authorization as string) ||
-    (req?.headers?.Authorization as string) ||
-    (typeof req?.get === "function" ? (req.get("authorization") || req.get("Authorization")) : "") ||
-    "";
-  return typeof h === "string" ? h : "";
-}
-
-function agkExtractBearer(req: any): string | null {
-  const raw = agkReadAuthHeader(req).trim();
-  if (!raw) return null;
-  const m = raw.match(/^Bearer\s+(.+)$/i);
-  const tok = (m ? m[1] : raw).trim();
-  return tok.replace(/^"+|"+$/g, "") || null; // strip accidental quotes
-}
-
-
-function agkTokenMeta(tok: string | null) {
-  const t = (tok || "").trim();
-  const dots = (t.match(/\./g) || []).length;
-  const len = t.length;
-  const head = t.slice(0, 12);
-  const tail = t.slice(-12);
-  return { len, dots, head, tail };
-}
-
-
 async function requireAuth(req: AuthedReq, res: express.Response, next: express.NextFunction) {
-  const tok = agkExtractBearer(req);
   try {
-    if (!tok) {
-      return res.status(401).json({ ok: false, error: "unauthorized", detail: "missing_token", meta: agkTokenMeta(tok) });
-    }
-    const decoded = await admin.auth().verifyIdToken(tok);
+    const h = String(req.headers.authorization || "");
+    const m = h.match(/^Bearer\s+(.+)$/i);
+    if (!m) return res.status(401).json({ ok: false, error: "unauthorized" });
+
+    const decoded = await auth.verifyIdToken(m[1]);
     req.uid = decoded.uid;
     return next();
-  } catch (e: any) {
-    return res.status(401).json({
-      ok: false,
-      error: "unauthorized",
-      detail: String((e as any)?.message || e),
-      meta: agkTokenMeta(tok),
-    });
+  } catch {
+    return res.status(401).json({ ok: false, error: "unauthorized" });
   }
 }
 
 const app = express();
 
 
-/** __AGK_AUTH_V2__
- * Use ONE canonical way to read/verify ID tokens.
- * (whoami already works — match that exact behavior)
- */
-function agkTokenMeta(tok) {
-  const t = String(tok || "").trim();
-  const dots = (t.match(/\./g) || []).length;
-  const len = t.length;
-  const head = t.slice(0, 12);
-  const tail = t.slice(Math.max(0, t.length - 12));
-  return { len, dots, head, tail };
-}
-
-function agkReadAuthHeaderV2(req) {
-  const h =
-    (req && req.headers && req.headers.authorization) ||
-    (req && req.headers && req.headers.Authorization) ||
-    (typeof req?.get === "function" ? (req.get("authorization") || req.get("Authorization")) : "") ||
-    "";
-  return typeof h === "string" ? h : "";
-}
-
-function agkExtractBearerV2(req) {
-  const raw = agkReadAuthHeaderV2(req).trim();
-  if (!raw) return null;
-  const m = raw.match(/^Bearer\s+(.+)$/i);
-  return (m ? m[1] : raw).trim() || null;
-}
-
-async function requireAuthV2(req, res, next) {
-  const tok = agkExtractBearerV2(req);
-  if (!tok) {
-    return res.status(401).json({ ok: false, error: "unauthorized", detail: "missing_token", meta: agkTokenMeta(tok) });
-  }
-  try {
-    // Use SAME verifier as whoami does.
-    const decoded = await admin.auth().verifyIdToken(tok);
-    req.uid = decoded.uid;
-    return next();
-  } catch (e) {
-    return res.status(401).json({
-      ok: false,
-      error: "unauthorized",
-      detail: String(e && e.message ? e.message : e),
-      meta: agkTokenMeta(tok),
-    });
-  }
-}
-
-// Debug: shows what FS auth middleware sees (meta only — not the full token)
-app.get("/api/baselines/fs_debug", async (req, res) => {
-  const tok = agkExtractBearerV2(req);
-  try {
-    const decoded = tok ? await admin.auth().verifyIdToken(tok) : null;
-    return res.json({ ok: true, meta: agkTokenMeta(tok), uid: decoded ? decoded.uid : null });
-  } catch (e) {
-    return res.status(401).json({ ok: false, meta: agkTokenMeta(tok), detail: String(e && e.message ? e.message : e) });
-  }
-});
-
-
-/**
- * TEMP DEBUG: inspect request headers + token shape for fs auth troubleshooting
- * Remove after confirming the failing gate.
- */
-app.get("/baselines/fs_debug", async (req: any, res: any) => {
-  try {
-    const h = String(req.headers.authorization || "");
-    const tok = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
-    return res.json({
-      ok: true,
-      hasAuth: !!h,
-      authHead: h.slice(0, 20),
-      authLen: h.length,
-      tokenLen: tok.length,
-      tokenDots: (tok.match(/\./g) || []).length,
-      hasAppCheck: !!req.headers["x-firebase-appcheck"],
-      hasCookie: !!req.headers.cookie,
-      path: req.path,
-      url: req.url,
-      method: req.method,
-    });
-  } catch (e: any) {
-    return res.status(500).json({ ok: false, error: "debug_failed", detail: String((e as any)?.message || e) });
-  }
-});
-
-/* AGK_FIX_START */
-/**
- * AGK FIX:
- * - Normalize accidental /api/api/* requests -> /api/*
- * - Read Authorization header case-insensitively (Node lowercases headers)
- * - Add /api/baselines/whoami to confirm auth works
- */
-
-
-// Normalize paths early (fix /api/api issue coming from frontend/base-url mistakes)
-app.use((req: any, _res: any, next: any) => {
-  try {
-    const u = String(req.url || "");
-    if (u.startsWith("/api/api/")) req.url = u.replace(/^\/api\/api\//, "/api/");
-  } catch {}
-  next();
-});
-
-// Debug endpoint: proves token is being read + verified
-app.get("/api/baselines/whoami", async (req: any, res: any) => {
-  try {
-    const tok = agkExtractBearer(req);
-    if (!tok) return res.status(401).json({ ok: false, error: "unauthorized", detail: "missing_token" });
-
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const admin = require("firebase-admin");
-    const decoded = await admin.auth().verifyIdToken(tok);
-    return res.json({ ok: true, uid: decoded?.uid || null });
-  } catch (e: any) {
-    return res.status(401).json({ ok: false, error: "unauthorized", detail: String((e as any)?.message || e) });
-  }
-});
-/* AGK_FIX_END */
-
-// __AGK_NORMALIZE_APIAPI__
-app.use((req, _res, next) => {
-  try {
-    if (typeof req.url === "string") {
-      req.url = req.url.replace(/^\/api\/api\//, "/api/");
-      req.url = req.url.replace(/^\/api\/api(?=\/|$)/, "/api");
-    }
-    if (typeof req.originalUrl === "string") {
-      req.originalUrl = req.originalUrl.replace(/^\/api\/api\//, "/api/");
-      req.originalUrl = req.originalUrl.replace(/^\/api\/api(?=\/|$)/, "/api");
-    }
-
-    const raw = (req.get && (req.get("authorization") || req.get("Authorization"))) || req.headers?.authorization;
-    if (raw && !req.headers.authorization) req.headers.authorization = raw;
-  } catch (e: any) {
-    // ignore
-  }
-  next();
-});
-
-
-/** __AGK_GIT_STATUS_ROUTE_V2__
- * Baselines health endpoint used by UI (git status / build info).
- * Returns JSON (never HTML 404).
- */
-app.get(["/baselines/git-status"], async (_req, res) => {
-  try {
-    res.set("Cache-Control", "no-store");
-    const sha =
-      process.env.GIT_SHA ||
-      process.env.COMMIT_SHA ||
-      process.env.SOURCE_VERSION ||
-      "unknown";
-    return res.status(200).json({ ok: true, sha });
-  } catch (_e) {
-    return res.status(200).json({ ok: true, sha: "unknown" });
-  }
-});
 /** __AGK_BASELINES_PREFIX_NORMALIZER__
  * Normalize Hosting rewrite prefixes so route matching works:
  *  - /api/api/baselines/* -> /baselines/*
@@ -301,28 +72,13 @@ app.use((req, _res, next) => {
     const u = String(req.url || "");
     if (u.startsWith("/api/api/baselines/")) req.url = u.replace(/^\/api\/api\/baselines\//, "/baselines/");
     else if (u.startsWith("/api/baselines/")) req.url = u.replace(/^\/api\/baselines\//, "/baselines/");
-  } catch (e: any) {}
+  } catch (e) {}
   next();
 });
 // ===== AI_GATEKEEPER_API_HEALTH_ALIAS =====
 // Always respond on /api/__health even if prefix stripping is broken.
 
-// ===== AI_GATEKEEPER_PUBLIC_
-/** __AGK_GIT_STATUS_ROUTE__
- * Health endpoint used by UI (git status / build info)
- * Public on purpose (returns JSON, never 404/HTML).
- */
-app.get(["/baselines/git-status"], async (_req, res) => {
-  try {
-    res.set("Cache-Control", "no-store");
-    // If you have envs like GIT_SHA / COMMIT_SHA set in build, expose them:
-    const sha = process.env.GIT_SHA || process.env.COMMIT_SHA || process.env.SOURCE_VERSION || "unknown";
-    return res.status(200).json({ ok: true, sha });
-  } catch (e: any) {
-    return res.status(200).json({ ok: true, sha: "unknown" });
-  }
-});
-// DEBUG_HEADERS =====
+// ===== AI_GATEKEEPER_PUBLIC_DEBUG_HEADERS =====
 // TEMP: public endpoint to confirm what headers arrive via Hosting rewrite.
 // Remove after debugging.
 app.all("/__debug/headers", (req, res) => {
@@ -355,7 +111,7 @@ app.get(["/__debug/verify", "/__debug/verify"], async (req, res) => {
       exp: decoded.exp,
       firebase: (decoded as any).firebase || null,
     });
-  } catch (e: any) {
+  } catch (e) {
     const err: any = e;
     return res.status(200).json({
       ok: false,
@@ -382,7 +138,7 @@ app.get(["/api/__debug/verify", "/__debug/verify"], async (req, res) => {
       email: (decoded as any).email || null,
       firebase: (decoded as any).firebase || null,
     });
-  } catch (e: any) {
+  } catch (e) {
     const err = (e || {}) as any;
     return res.status(200).json({
       ok: false,
@@ -571,12 +327,12 @@ const uploadMultiFsHandler = (req: any, res: any) => {
       });
 
       writeStream.on("error", (e: any) => {
-        rejected.push({ reason: "gcs_write_error", filename: original, mimeType, message: String((e as any)?.message || e) });
+        rejected.push({ reason: "gcs_write_error", filename: original, mimeType, message: String(e?.message || e) });
         finish();
       });
 
       file.on("error", (e: any) => {
-        rejected.push({ reason: "file_stream_error", filename: original, mimeType, message: String((e as any)?.message || e) });
+        rejected.push({ reason: "file_stream_error", filename: original, mimeType, message: String(e?.message || e) });
         finish();
       });
     });
@@ -586,7 +342,7 @@ const uploadMultiFsHandler = (req: any, res: any) => {
   });
 
   bb.on("error", (e: any) => {
-    res.status(400).json({ ok: false, error: "bad_multipart", message: String((e as any)?.message || e) });
+    res.status(400).json({ ok: false, error: "bad_multipart", message: String(e?.message || e) });
   });
 
   bb.on("finish", async () => {
@@ -676,7 +432,7 @@ app.get("/download", requireAuth, async (req: any, res) => {
 // alias in case it wasn't inserted earlier
 
 // List files for current user
-app.get(["/api/baselines/fs", "/baselines/fs"], requireAuthV2, async (req: any, res: any) => {
+app.get(["/api/baselines/fs", "/baselines/fs"], requireAuth, async (req: any, res: any) => {
   try {
     const uid = (req as any)?.user?.uid;
     if (!uid) return res.status(401).json({ ok: false, error: "unauthorized" });
@@ -699,7 +455,7 @@ app.get(["/api/baselines/fs", "/baselines/fs"], requireAuthV2, async (req: any, 
 
     return res.json({ ok: true, count: out.length, files: out });
   } catch (e: any) {
-    return res.status(500).json({ ok: false, error: "list_failed", message: String((e as any)?.message || e) });
+    return res.status(500).json({ ok: false, error: "list_failed", message: String(e?.message || e) });
   }
 });
 
@@ -737,7 +493,7 @@ app.delete(["/api/baselines/:screenId/fs", "/baselines/:screenId/fs"], requireAu
 
     return res.json({ ok: true, removed: objects.length, objects });
   } catch (e: any) {
-    return res.status(500).json({ ok: false, error: "delete_failed", message: String((e as any)?.message || e) });
+    return res.status(500).json({ ok: false, error: "delete_failed", message: String(e?.message || e) });
   }
 });
 
@@ -766,7 +522,7 @@ app.get(["/api/baselines/:screenId/image-fs", "/baselines/:screenId/image-fs"], 
     const object = String(first.name);
     return res.redirect(302, `/api/download?object=${encodeURIComponent(object)}`);
   } catch (e: any) {
-    return res.status(500).json({ ok: false, error: "image_failed", message: String((e as any)?.message || e) });
+    return res.status(500).json({ ok: false, error: "image_failed", message: String(e?.message || e) });
   }
 });
 

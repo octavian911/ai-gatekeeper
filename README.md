@@ -1,3 +1,4 @@
+
 # AI Output Gate
 
 **Visual regression gate preventing UI drift in AI-generated code.**

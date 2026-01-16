@@ -1,4 +1,4 @@
-import { getAuth, signInAnonymously } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import { initializeApp, type FirebaseApp, getApp, getApps } from "firebase/app";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
@@ -105,20 +105,44 @@ export async function ensureSignedIn(): Promise<void> {
  * Returns headers needed for authenticated API calls.
  * - Uses Firebase Auth ID token (works for anonymous users too, if anonymous auth is enabled).
  */
+
+
+/**
+ * Always returns Authorization header for backend calls.
+ * - Ensures Firebase Auth has a user (anonymous ok).
+ * - Fetches an ID token and returns "Authorization: Bearer <token>".
+ * If Anonymous Auth is NOT enabled in Firebase Console, this throws loudly.
+ */
+
+let __authReadyPromise: Promise<void> | null = null;
+function __ensureAuthReady(): Promise<void> {
+  if (__authReadyPromise) return __authReadyPromise;
+  const auth = getAuth();
+  __authReadyPromise = new Promise((resolve) => {
+    const unsub = onAuthStateChanged(auth, () => {
+      unsub();
+      resolve();
+    });
+  });
+  return __authReadyPromise;
+}
+
 export async function getAuthHeaders(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {};
+
+  // Wait for Firebase Auth to restore session before reading currentUser
   try {
-    // Lazy import to avoid affecting init order in some builds
-    const { getAuth } = await import("firebase/auth");
+    await __ensureAuthReady();
     const auth = getAuth();
     const user = auth.currentUser;
     if (user) {
-      const token = await user.getIdToken();
-      headers["Authorization"] = `Bearer ${token}`;
+      const idToken = await user.getIdToken();
+      if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
     }
-  } catch (e) {
-    // Don't hard-fail the UI just because auth headers can't be produced.
-    console.warn("getAuthHeaders() failed:", e);
+  } catch {
+    // ignore
   }
+
   return headers;
 }
+

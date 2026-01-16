@@ -1,16 +1,3 @@
-// task19 helper (safe)
-async function __task19_getIdToken(): Promise<string> {
-  try {
-    const mod: any = await import("firebase/auth");
-    const auth = mod.getAuth?.();
-    const u = auth?.currentUser;
-    if (!u) return "";
-    return await u.getIdToken?.(true);
-  } catch (e) {
-    return "";
-  }
-}
-
 import { initAppCheck, getAuthHeaders } from "./firebaseAppCheck";
 import { getAuthHeaders } from "./firebaseAppCheck";
 
@@ -796,16 +783,6 @@ class BaseClient {
 
         // Fetch auth data if there is any
         const authData = await this.getAuthData();
-// task19_attach_bearer
-try {
-  const tok = await __task19_getIdToken();
-  if (tok) {
-    const h = new Headers((init as any).headers || {});
-    h.set("Authorization", "Bearer " + tok);
-    (init as any).headers = h;
-  }
-} catch(e) {}
-
 
         // If we now have authentication data, add it to the request
         if (authData) {
