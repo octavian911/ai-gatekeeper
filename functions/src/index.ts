@@ -117,6 +117,7 @@ async function requireAuth(req: AuthedReq, res: express.Response, next: express.
     }
     const decoded = await admin.auth().verifyIdToken(tok);
     req.uid = decoded.uid;
+    (req as any).signInProvider = (decoded && decoded.firebase && decoded.firebase.sign_in_provider) ? decoded.firebase.sign_in_provider : null;
     return next();
   } catch (e: any) {
     return res.status(401).json({
@@ -161,7 +162,10 @@ async function requireAuthV2(req: any, res: any, next: any) {
     // Use SAME verifier as whoami does.
     const decoded = await admin.auth().verifyIdToken(tok);
     req.uid = decoded.uid;
-    return next();
+    return; // Propagate UID consistently for downstream handlers
+    (req as any).uid = (req as any).uid || (req as any).user?.uid;
+    (req as any).user = (req as any).user || { uid: (req as any).uid };
+    next();
   } catch (e) {
     return res.status(401).json({
       ok: false,
@@ -188,7 +192,7 @@ app.get("/api/baselines/fs_debug", async (req, res) => {
  * TEMP DEBUG: inspect request headers + token shape for fs auth troubleshooting
  * Remove after confirming the failing gate.
  */
-app.get("/baselines/fs_debug", async (req: any, res: any) => {
+app.get("/baselines/fs_debug", requireAuthV2, async (req: any, res: any) => {
   try {
     const h = String(req.headers.authorization || "");
     const tok = h.startsWith("Bearer ") ? h.slice(7).trim() : "";
@@ -667,15 +671,44 @@ app.get("/download", requireAuth, async (req: any, res) => {
 // alias in case it wasn't inserted earlier
 
 // List files for current user
+// List files for current user
 app.get(["/api/baselines/fs", "/baselines/fs"], requireAuthV2, async (req: any, res: any) => {
+  const startedAt = Date.now();
+
   try {
-    const uid = (req as any)?.user?.uid;
-    if (!uid) return res.status(401).json({ ok: false, error: "unauthorized" });
+    const uid = (req as any)?.uid || (req as any)?.user?.uid;
+    if (!uid) {
+      return res.status(401).json({
+        ok: false,
+        error: "unauthorized",
+        reason: "fs_handler_denied",
+        uid: (req as any)?.uid || null,
+        provider: (req as any).signInProvider || null,
+      });
+    }
 
     const bucket = admin.storage().bucket(getUploadBucket());
     const prefix = `uploads/${uid}/`;
 
-    const [files] = await bucket.getFiles({ prefix });
+    // Query controls
+    const limitRaw = (req.query as any)?.limit;
+    const limitNum = Number(limitRaw);
+    const limit = Number.isFinite(limitNum) ? Math.min(Math.max(limitNum, 1), 200) : 50;
+
+    const pageTokenRaw = (req.query as any)?.pageToken;
+    const pageTokenStr = pageTokenRaw ? String(pageTokenRaw).trim() : "";
+    const pageToken = pageTokenStr ? pageTokenStr : undefined;
+
+    const opts: any = { prefix, maxResults: limit, autoPaginate: false };
+    if (pageToken) opts.pageToken = pageToken;
+
+    // @google-cloud/storage getFiles returns: [files, nextQuery, apiResponse]
+    const result: any = await bucket.getFiles(opts);
+    const files: any[] = (result && result[0]) ? result[0] : [];
+    const nextQuery: any = (result && result[1]) ? result[1] : null;
+    const nextPageToken: string | undefined =
+        nextQuery && nextQuery.pageToken ? String(nextQuery.pageToken) : undefined;
+
     const out = (files || [])
       .filter((f: any) => f?.name && !String(f.name).endsWith("/"))
       .map((f: any) => {
@@ -688,16 +721,20 @@ app.get(["/api/baselines/fs", "/baselines/fs"], requireAuthV2, async (req: any, 
         };
       });
 
-    return res.json({ ok: true, count: out.length, files: out });
+    const elapsedMs = Date.now() - startedAt;
+    console.log(JSON.stringify({ tag: "FS_LIST", uid, prefix, limit, hasPageToken: !!pageToken, count: out.length, hasNextPageToken: !!nextPageToken, elapsedMs }));
+    return res.json({ ok: true, count: out.length, files: out, nextPageToken });
   } catch (e: any) {
-    return res.status(500).json({ ok: false, error: "list_failed", message: String((e as any)?.message || e) });
+    console.error("FS_LIST_ERR", { message: String(e?.message || e) });
+    return res.status(500).json({ ok: false, error: "list_failed", message: String(e?.message || e) });
   }
 });
+
 
 // Delete all objects whose *filename* starts with screenId (prefix match)
 app.delete(["/api/baselines/:screenId/fs", "/baselines/:screenId/fs"], requireAuth, async (req: any, res: any) => {
   try {
-    const uid = (req as any)?.user?.uid;
+    const uid = (req as any)?.uid || (req as any)?.user?.uid;
     if (!uid) return res.status(401).json({ ok: false, error: "unauthorized" });
 
     const screenId = String(req.params.screenId || "").trim();
@@ -735,7 +772,7 @@ app.delete(["/api/baselines/:screenId/fs", "/baselines/:screenId/fs"], requireAu
 // Return an image (first match) by redirecting to /api/download
 app.get(["/api/baselines/:screenId/image-fs", "/baselines/:screenId/image-fs"], requireAuth, async (req: any, res: any) => {
   try {
-    const uid = (req as any)?.user?.uid;
+    const uid = (req as any)?.uid || (req as any)?.user?.uid;
     if (!uid) return res.status(401).json({ ok: false, error: "unauthorized" });
 
     const screenId = String(req.params.screenId || "").trim();
