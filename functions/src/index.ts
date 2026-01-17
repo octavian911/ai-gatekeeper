@@ -105,10 +105,9 @@ function agkTokenMeta(tok: string | null) {
   const dots = (t.match(/\./g) || []).length;
   const len = t.length;
   const head = t.slice(0, 12);
-  const tail = t.slice(-12);
+  const tail = t.slice(Math.max(0, len - 12));
   return { len, dots, head, tail };
 }
-
 
 async function requireAuth(req: AuthedReq, res: express.Response, next: express.NextFunction) {
   const tok = agkExtractBearer(req);
@@ -136,16 +135,8 @@ const app = express();
  * Use ONE canonical way to read/verify ID tokens.
  * (whoami already works — match that exact behavior)
  */
-function agkTokenMeta(tok) {
-  const t = String(tok || "").trim();
-  const dots = (t.match(/\./g) || []).length;
-  const len = t.length;
-  const head = t.slice(0, 12);
-  const tail = t.slice(Math.max(0, t.length - 12));
-  return { len, dots, head, tail };
-}
 
-function agkReadAuthHeaderV2(req) {
+function agkReadAuthHeaderV2(req: any) {
   const h =
     (req && req.headers && req.headers.authorization) ||
     (req && req.headers && req.headers.Authorization) ||
@@ -154,14 +145,14 @@ function agkReadAuthHeaderV2(req) {
   return typeof h === "string" ? h : "";
 }
 
-function agkExtractBearerV2(req) {
+function agkExtractBearerV2(req: any) {
   const raw = agkReadAuthHeaderV2(req).trim();
   if (!raw) return null;
   const m = raw.match(/^Bearer\s+(.+)$/i);
   return (m ? m[1] : raw).trim() || null;
 }
 
-async function requireAuthV2(req, res, next) {
+async function requireAuthV2(req: any, res: any, next: any) {
   const tok = agkExtractBearerV2(req);
   if (!tok) {
     return res.status(401).json({ ok: false, error: "unauthorized", detail: "missing_token", meta: agkTokenMeta(tok) });
@@ -175,7 +166,7 @@ async function requireAuthV2(req, res, next) {
     return res.status(401).json({
       ok: false,
       error: "unauthorized",
-      detail: String(e && e.message ? e.message : e),
+      detail: String((e as any)?.message || e),
       meta: agkTokenMeta(tok),
     });
   }
@@ -188,7 +179,7 @@ app.get("/api/baselines/fs_debug", async (req, res) => {
     const decoded = tok ? await admin.auth().verifyIdToken(tok) : null;
     return res.json({ ok: true, meta: agkTokenMeta(tok), uid: decoded ? decoded.uid : null });
   } catch (e) {
-    return res.status(401).json({ ok: false, meta: agkTokenMeta(tok), detail: String(e && e.message ? e.message : e) });
+    return res.status(401).json({ ok: false, meta: agkTokenMeta(tok), detail: String((e as any)?.message || e) });
   }
 });
 
