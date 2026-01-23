@@ -149,7 +149,7 @@ const requireAuthV2Timeout = async (req: any, res: any, next: any) => {
     }
     return next();
   } catch (e: any) {
-    const msg = String((e as any)?.message || e);
+    const msg = String(e?.message || e);
     if (msg.includes("auth_timeout")) {
       return res.status(504).json({ ok: false, error: "auth_timeout", timeoutMs: Number(process.env.AUTH_TIMEOUT_MS || 8000) });
     }
@@ -759,7 +759,7 @@ const __fsListHandler = async (req: any, res: any) => {
       elapsedMs: Date.now() - t0,
     });
   } catch (e: any) {
-    const msg = String((e as any)?.message || e);
+    const msg = String(e?.message || e);
     if (msg.includes("fs_list_timeout")) {
       return res.status(504).json({ ok: false, error: "fs_list_timeout", elapsedMs: Date.now() - t0 });
     }
@@ -777,134 +777,206 @@ const __fsListHandler = async (req: any, res: any) => {
 app.get("/api/baselines/fs", requireAuthV2Timeout, __fsListHandler);
 app.get("/baselines/fs", requireAuthV2Timeout, __fsListHandler);
 
-// ===== FS download (bucket-safe + base64 auto-decode) =====
-const __fsDownloadHandler = async (req: any, res: any) => {
+// ==============================
+app.get("/api/baselines/fs_download", requireAuthV2Timeout, async (req: any, res: any) => {
+  try {
+    const name = String(req.query.name || "");
+    if (!name) return res.status(400).json({ ok: false, error: "missing_name" });
+
+    const bucketName = process.env.UPLOADS_BUCKET || process.env.GCLOUD_STORAGE_BUCKET || "";
+    if (!bucketName) return res.status(500).json({ ok: false, error: "missing_bucket" });
+
+    const bucket = storage.bucket(bucketName);
+    const gcsFile = bucket.file(name);
+
+    // Guardrail: avoid huge in-memory loads
+    const [meta] = await gcsFile.getMetadata();
+    const size = Number(meta?.size || 0);
+    const MAX = 15 * 1024 * 1024; // 15MB
+    if (size > MAX) {
+      return res.status(413).json({ ok: false, error: "too_large", size, max: MAX });
+    }
+
+    // Download into memory (baselines are small). Lets us decode base64 if stored as text.
+    const [buf] = await gcsFile.download();
+
+    const head = buf.slice(0, Math.min(80, buf.length)).toString("utf8");
+    let out = buf;
+    let decoded = false;
+
+    if (head.startsWith("data:") && head.includes(";base64,")) {
+      const s = buf.toString("utf8");
+      const idx = s.indexOf(";base64,");
+      const b64 = s.slice(idx + ";base64,".length);
+      out = Buffer.from(b64, "base64");
+      decoded = true;
+    } else if (/^[A-Za-z0-9+/=\r\n]+$/.test(head) && head.replace(/\s+/g, "").startsWith("iVBORw0K")) {
+      const s = buf.toString("utf8").replace(/\s+/g, "");
+      out = Buffer.from(s, "base64");
+      decoded = true;
+    }
+
+    const filename = name.split("/").pop() || "download.bin";
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("X-AIGK-Decoded-Base64", decoded ? "1" : "0");
+    res.status(200).send(out);
+  } catch (e) {
+    console.error("[fs_download] error", { message: String(e?.message || e) });
+    res.status(500).json({ ok: false, error: "fs_download_failed", detail: String(e?.message || e) });
+  }
+});
+
+app.get("/baselines/fs_download", requireAuthV2Timeout, async (req: any, res: any) => {
+  try {
+    const name = String(req.query.name || "");
+    if (!name) return res.status(400).json({ ok: false, error: "missing_name" });
+
+    const bucketName = process.env.UPLOADS_BUCKET || process.env.GCLOUD_STORAGE_BUCKET || "";
+    if (!bucketName) return res.status(500).json({ ok: false, error: "missing_bucket" });
+
+    const bucket = storage.bucket(bucketName);
+    const gcsFile = bucket.file(name);
+
+    // Guardrail: avoid huge in-memory loads
+    const [meta] = await gcsFile.getMetadata();
+    const size = Number(meta?.size || 0);
+    const MAX = 15 * 1024 * 1024; // 15MB
+    if (size > MAX) {
+      return res.status(413).json({ ok: false, error: "too_large", size, max: MAX });
+    }
+
+    // Download into memory (baselines are small). Lets us decode base64 if stored as text.
+    const [buf] = await gcsFile.download();
+
+    const head = buf.slice(0, Math.min(80, buf.length)).toString("utf8");
+    let out = buf;
+    let decoded = false;
+
+    if (head.startsWith("data:") && head.includes(";base64,")) {
+      const s = buf.toString("utf8");
+      const idx = s.indexOf(";base64,");
+      const b64 = s.slice(idx + ";base64,".length);
+      out = Buffer.from(b64, "base64");
+      decoded = true;
+    } else if (/^[A-Za-z0-9+/=\r\n]+$/.test(head) && head.replace(/\s+/g, "").startsWith("iVBORw0K")) {
+      const s = buf.toString("utf8").replace(/\s+/g, "");
+      out = Buffer.from(s, "base64");
+      decoded = true;
+    }
+
+    const filename = name.split("/").pop() || "download.bin";
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("X-AIGK-Decoded-Base64", decoded ? "1" : "0");
+    res.status(200).send(out);
+  } catch (e) {
+    console.error("[fs_download] error", { message: String(e?.message || e) });
+    res.status(500).json({ ok: false, error: "fs_download_failed", detail: String(e?.message || e) });
+  }
+});
+
+
+// Delete all objects whose *filename* starts with screenId (prefix match)
+app.delete(["/api/baselines/:screenId/fs", "/baselines/:screenId/fs"], requireAuth, async (req: any, res: any) => {
+  try {
+    const uid = (req as any)?.uid || (req as any)?.user?.uid;
+    if (!uid) return res.status(401).json({ ok: false, error: "unauthorized" });
+
+    const screenId = String(req.params.screenId || "").trim();
+    if (!screenId) return res.status(400).json({ ok: false, error: "missing_screenId" });
+
+    const bucket = admin.storage().bucket(getUploadBucket());
+    const userPrefix = `uploads/${uid}/`;
+
+    // We stored as: uploads/<uid>/<timestamp>_<originalfilename>
+    // So we can't strictly prefix by screenId unless you encode screenId into filename.
+    // We'll do a contains match on the filename part to be safer.
+    const [files] = await bucket.getFiles({ prefix: userPrefix });
+    const targets = (files || []).filter((f: any) => {
+      const object = String(f?.name || "");
+      if (!object || object.endsWith("/")) return false;
+      const filename = object.startsWith(userPrefix) ? object.slice(userPrefix.length) : object;
+      return filename.startsWith(screenId);
+    });
+
+    if (!targets.length) return res.json({ ok: true, removed: 0, objects: [] });
+
+    const objects: string[] = [];
+    for (const f of targets) {
+      const object = String(f.name);
+      objects.push(object);
+      await bucket.file(object).delete({ ignoreNotFound: true }).catch(() => {});
+    }
+
+    return res.json({ ok: true, removed: objects.length, objects });
+  } catch (e: any) {
+    return res.status(500).json({ ok: false, error: "delete_failed", message: String((e as any)?.message || e) });
+  }
+});
+
+// Return an image (first match) by redirecting to /api/download
+app.get(["/api/baselines/:screenId/image-fs", "/baselines/:screenId/image-fs"], requireAuth, async (req: any, res: any) => {
+  try {
+    const uid = (req as any)?.uid || (req as any)?.user?.uid;
+    if (!uid) return res.status(401).json({ ok: false, error: "unauthorized" });
+
+    const screenId = String(req.params.screenId || "").trim();
+    if (!screenId) return res.status(400).json({ ok: false, error: "missing_screenId" });
+
+    const bucket = admin.storage().bucket(getUploadBucket());
+    const userPrefix = `uploads/${uid}/`;
+
+    const [files] = await bucket.getFiles({ prefix: userPrefix });
+    const first = (files || []).find((f: any) => {
+      const object = String(f?.name || "");
+      if (!object || object.endsWith("/")) return false;
+      const filename = object.startsWith(userPrefix) ? object.slice(userPrefix.length) : object;
+      return filename.startsWith(screenId);
+    });
+
+    if (!first?.name) return res.status(404).json({ ok: false, error: "not_found" });
+
+    const object = String(first.name);
+    return res.redirect(302, `/api/download?object=${encodeURIComponent(object)}`);
+  } catch (e: any) {
+    return res.status(500).json({ ok: false, error: "image_failed", message: String((e as any)?.message || e) });
+  }
+});
+
+export const api = functions.onRequest(
+  { region: process.env.API_REGION || "us-central1" },
+  app
+);
+
+
+app.get("/baselines/fs_download", requireAuthV2Timeout, async (req: any, res: any) => {
   const uid = req.uid as string;
   const name = req.query?.name ? String(req.query.name) : "";
-  if (!name) return res.status(400).json({ ok: false, error: "missing_name" });
 
   const expectedPrefix = `uploads/${uid}/`;
-  if (!name.startsWith(expectedPrefix)) {
+  if (!name || !name.startsWith(expectedPrefix)) {
     return res.status(403).json({ ok: false, error: "forbidden", detail: "Invalid file path." });
   }
 
   try {
     const bucket = admin.storage().bucket(getUploadBucket());
-    const gcsFile = bucket.file(name);
+    const file = bucket.file(name);
 
-    // Guardrail: avoid huge in-memory loads
-    const [meta] = await gcsFile.getMetadata();
-    const size = Number((meta as any)?.size || 0);
-    const MAX = 15 * 1024 * 1024; // 15MB
-    if (size > MAX) return res.status(413).json({ ok: false, error: "too_large", size, max: MAX });
-
-    // Download into memory so we can decode base64 if object was stored as base64 text
-    const [buf] = await gcsFile.download();
-
-    const head = buf.slice(0, Math.min(120, buf.length)).toString("utf8");
-    let out = buf;
-    let decoded = false;
-
-    // data URL form: data:image/png;base64,....
-    if (head.startsWith("data:") && head.includes(";base64,")) {
-      const s = buf.toString("utf8");
-      const j = s.indexOf(";base64,");
-      const b64 = s.slice(j + ";base64,".length).replace(/\s+/g, "");
-      const tmp = Buffer.from(b64, "base64");
-      if (tmp.length) { out = tmp; decoded = true; }
-    } else {
-      // plain base64 (common PNG prefix iVBORw0K)
-      const compact = head.replace(/\s+/g, "");
-      if (/^[A-Za-z0-9+/=]+$/.test(compact) && compact.startsWith("iVBORw0K")) {
-        const s = buf.toString("utf8").replace(/\s+/g, "");
-        const tmp = Buffer.from(s, "base64");
-        if (tmp.length) { out = tmp; decoded = true; }
-      }
-    }
-
-    const filename = (name.split("/").pop() || "download.bin");
     res.setHeader("Content-Type", "application/octet-stream");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.setHeader("X-AIGK-Decoded-Base64", decoded ? "1" : "0");
-    return res.status(200).send(out);
-  } catch (e) {
-    console.error("[fs_download] error", { message: String((e as any)?.message || e) });
-    return res.status(500).json({ ok: false, error: "fs_download_failed", detail: String((e as any)?.message || e) });
-  }
-};
+    res.setHeader("Content-Disposition", `attachment; filename="${path.basename(name)}"`);
 
-app.get("/api/baselines/fs_download", requireAuthV2Timeout, __fsDownloadHandler);
-app.get("/baselines/fs_download", requireAuthV2Timeout, __fsDownloadHandler);
-// =========================================================
-
-
-// ==============================
-
-
-// Delete all objects whose *filename* starts with screenId (prefix match)
-app.delete(["/api/baselines/:screenId/fs", "/baselines/:screenId/fs"], requireAuth, async (req: any, res: any) => {
-  try {
-    const uid = (req as any)?.uid || (req as any)?.user?.uid;
-    if (!uid) return res.status(401).json({ ok: false, error: "unauthorized" });
-
-    const screenId = String(req.params.screenId || "").trim();
-    if (!screenId) return res.status(400).json({ ok: false, error: "missing_screenId" });
-
-    const bucket = admin.storage().bucket(getUploadBucket());
-    const userPrefix = `uploads/${uid}/`;
-
-    // We stored as: uploads/<uid>/<timestamp>_<originalfilename>
-    // So we can't strictly prefix by screenId unless you encode screenId into filename.
-    // We'll do a contains match on the filename part to be safer.
-    const [files] = await bucket.getFiles({ prefix: userPrefix });
-    const targets = (files || []).filter((f: any) => {
-      const object = String(f?.name || "");
-      if (!object || object.endsWith("/")) return false;
-      const filename = object.startsWith(userPrefix) ? object.slice(userPrefix.length) : object;
-      return filename.startsWith(screenId);
-    });
-
-    if (!targets.length) return res.json({ ok: true, removed: 0, objects: [] });
-
-    const objects: string[] = [];
-    for (const f of targets) {
-      const object = String(f.name);
-      objects.push(object);
-      await bucket.file(object).delete({ ignoreNotFound: true }).catch(() => {});
-    }
-
-    return res.json({ ok: true, removed: objects.length, objects });
+    file
+      .createReadStream()
+      .on("error", (err: any) => {
+        console.error("[fs_download] stream error", { message: String(err?.message || err) });
+        if (!res.headersSent) res.status(500).end("download failed");
+        else res.end();
+      })
+      .pipe(res);
   } catch (e: any) {
-    return res.status(500).json({ ok: false, error: "delete_failed", message: String((e as any)?.message || e) });
-  }
-});
-
-// Return an image (first match) by redirecting to /api/download
-app.get(["/api/baselines/:screenId/image-fs", "/baselines/:screenId/image-fs"], requireAuth, async (req: any, res: any) => {
-  try {
-    const uid = (req as any)?.uid || (req as any)?.user?.uid;
-    if (!uid) return res.status(401).json({ ok: false, error: "unauthorized" });
-
-    const screenId = String(req.params.screenId || "").trim();
-    if (!screenId) return res.status(400).json({ ok: false, error: "missing_screenId" });
-
-    const bucket = admin.storage().bucket(getUploadBucket());
-    const userPrefix = `uploads/${uid}/`;
-
-    const [files] = await bucket.getFiles({ prefix: userPrefix });
-    const first = (files || []).find((f: any) => {
-      const object = String(f?.name || "");
-      if (!object || object.endsWith("/")) return false;
-      const filename = object.startsWith(userPrefix) ? object.slice(userPrefix.length) : object;
-      return filename.startsWith(screenId);
-    });
-
-    if (!first?.name) return res.status(404).json({ ok: false, error: "not_found" });
-
-    const object = String(first.name);
-    return res.redirect(302, `/api/download?object=${encodeURIComponent(object)}`);
-  } catch (e: any) {
-    return res.status(500).json({ ok: false, error: "image_failed", message: String((e as any)?.message || e) });
+    console.error("[fs_download] error", { message: String(e?.message || e) });
+    return res.status(500).json({ ok: false, error: "download_failed", detail: String(e?.message || e) });
   }
 });
 
@@ -976,6 +1048,11 @@ app.get(["/api/baselines/:screenId/image-fs", "/baselines/:screenId/image-fs"], 
   }
 });
 
+export const api = functions.onRequest(
+  { region: process.env.API_REGION || "us-central1" },
+  app
+);
+
 
 // Delete all objects whose *filename* starts with screenId (prefix match)
 app.delete(["/api/baselines/:screenId/fs", "/baselines/:screenId/fs"], requireAuth, async (req: any, res: any) => {
@@ -1041,6 +1118,42 @@ app.get(["/api/baselines/:screenId/image-fs", "/baselines/:screenId/image-fs"], 
     return res.redirect(302, `/api/download?object=${encodeURIComponent(object)}`);
   } catch (e: any) {
     return res.status(500).json({ ok: false, error: "image_failed", message: String((e as any)?.message || e) });
+  }
+});
+
+export const api = functions.onRequest(
+  { region: process.env.API_REGION || "us-central1" },
+  app
+);
+
+
+app.get("/baselines/fs_download", requireAuthV2Timeout, async (req: any, res: any) => {
+  const uid = req.uid as string;
+  const name = req.query?.name ? String(req.query.name) : "";
+
+  const expectedPrefix = `uploads/${uid}/`;
+  if (!name || !name.startsWith(expectedPrefix)) {
+    return res.status(403).json({ ok: false, error: "forbidden", detail: "Invalid file path." });
+  }
+
+  try {
+    const bucket = admin.storage().bucket(getUploadBucket());
+    const file = bucket.file(name);
+
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.setHeader("Content-Disposition", `attachment; filename="${path.basename(name)}"`);
+
+    file
+      .createReadStream()
+      .on("error", (err: any) => {
+        console.error("[fs_download] stream error", { message: String(err?.message || err) });
+        if (!res.headersSent) res.status(500).end("download failed");
+        else res.end();
+      })
+      .pipe(res);
+  } catch (e: any) {
+    console.error("[fs_download] error", { message: String(e?.message || e) });
+    return res.status(500).json({ ok: false, error: "download_failed", detail: String(e?.message || e) });
   }
 });
 

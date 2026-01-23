@@ -40,11 +40,14 @@ function asArray(v: any): any[] {
   if (Array.isArray(v.results)) return v.results;
   return [];
 }
-
-function pickUrl(f: NormalizedFile): string | undefined {
-  return f.downloadUrl || f.url || f.href;
-}
-
+  function pickUrl(f: NormalizedFile): string {
+    const u = (f.downloadUrl || f.url || f.href || "").toString();
+    if (!u) return "";
+    if (/^https?:\/\//i.test(u)) return u;
+    if (u.startsWith("/api/")) return u;
+    if (u.startsWith("/")) return "/api" + u;
+    return u;
+  }
 function pickName(f: NormalizedFile): string {
   return f.originalName || f.filename || f.name || f.id || "file";
 }
@@ -76,7 +79,19 @@ export default function UploadPanel() {
     setIsUploading(true);
     try {
       const headers = await getAuthHeaders();
-      const res = await fetch("/api/baselines/upload-multi-fs", { method: "POST", body: form, headers });
+      const res = await fetch("/api/upload-multi-fs", { method: "POST", body: form, headers });
+
+
+      try {
+        const listRes = await fetch("/api/baselines/fs?limit=200", { headers });
+        const listJson = await listRes.json().catch(() => null);
+        const items = normalizeFiles(listJson);
+        if (Array.isArray(items)) setUploaded(items as any);
+      } catch (e) {
+        // ignore list failures here; upload already succeeded
+      }
+
+
 
       if (!res.ok) {
         const text = await res.text().catch(() => "");

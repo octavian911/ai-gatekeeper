@@ -1,0 +1,9 @@
+{
+  "terminal.integrated.profiles.linux": {
+    "bash (safe)": {
+      "path": "/bin/bash",
+      "args": ["--noprofile", "--norc"]
+    }
+  },
+  "terminal.integrated.defaultProfile.linux": "bash (safe)"
+}

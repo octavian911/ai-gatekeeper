@@ -71,6 +71,7 @@
   } catch (e) {}
 })();
 import React from "react";
+import "./runtimeDiag";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";

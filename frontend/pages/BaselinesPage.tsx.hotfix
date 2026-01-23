@@ -1,7 +1,7 @@
 import React from "react";
 import UploadPanel from "../src/components/UploadPanel";
 
-export default function BaselinesPage() {
+export function BaselinesPage() {
   return (
     <div style={{ padding: 16 }}>
       <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 12px 0" }}>Baselines</h2>
@@ -12,3 +12,5 @@ export default function BaselinesPage() {
     </div>
   );
 }
+
+export default BaselinesPage;
